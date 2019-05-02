@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 const version = "0.0.1"
@@ -37,13 +38,30 @@ func evaluateFlags() (workingDir Path, buildFile Path, homeDir Path, verbose boo
 	return Path(*tdir), Path(*tbuildFile).Resolve(Path(*tdir)), Path(*thome), *tverbose
 }
 
-
-
-
-
 func main() {
+	total := time.Now()
+	start := time.Now()
+
 	builder := &Builder{}
 	builder.Init()
 	builder.EnsureGoMobile()
-	builder.CopyModulesToWorkspace()
+	builder.StopWatch(start, "preparation")
+
+	start = time.Now()
+	err := builder.CopyModulesToWorkspace()
+	if err != nil {
+		fmt.Println("failed to prepare modules in workspace:", err)
+		os.Exit(-1)
+	}
+	builder.StopWatch(start, "workspace setup")
+
+	start = time.Now()
+	err = builder.Gomobile()
+	if err != nil {
+		fmt.Println("failed to compile with gomobile:", err)
+		os.Exit(-1)
+	}
+	builder.StopWatch(start, "gomobile")
+	builder.StopWatch(total, "total")
+
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 type Builder struct {
@@ -23,8 +24,8 @@ type Builder struct {
 	// BuildFile is the file to load the config from
 	BuildFile Path
 
-	// Build is the configuration to use, as loaded from BuildFile
-	Build *Build
+	// BuildConfiguration is the configuration to use, as loaded from BuildFile
+	BuildConfig *BuildConfiguration
 
 	// HomeDir denotes the home directory of the user executing this process
 	HomeDir Path
@@ -90,7 +91,7 @@ func (b *Builder) Init() {
 		b.Failf("%v", err)
 	}
 
-	b.Build = cfg
+	b.BuildConfig = cfg
 	b.BuildDir = b.HomeDir.Child(cfg.Project)
 	b.GoPath = b.HomeDir.Child(cfg.Project).Child("workspace")
 
@@ -141,6 +142,64 @@ func (b *Builder) Run(name string, args ...string) error {
 	return err
 }
 
+func (b *Builder) Gomobile() error {
+	if b.Verbose {
+		b.PP("\ninvoking gomobile...")
+	}
+	b.Chdir(b.GoPath)
+	b.SetEnv("GO111MODULE", "off")
+
+	if b.BuildConfig.Build.Android != nil {
+		args := []string{"bind"}
+		if b.Verbose {
+			args = append(args, "-v")
+		}
+
+		if len(b.BuildConfig.Build.Android.Out) == 0 {
+			b.BuildConfig.Build.Android.Out = Path("./" + b.BuildConfig.Project + ".aar")
+		}
+		outFile := b.BuildConfig.Build.Android.Out.Resolve(b.BaseDir)
+		args = append(args, "-o", outFile.String())
+
+		if len(b.BuildConfig.Build.Android.Package) > 0 {
+			args = append(args, "-javapkg", b.BuildConfig.Build.Android.Package)
+		}
+		args = append(args, "-target=android")
+
+		args = append(args, b.BuildConfig.Exports...)
+		err := b.Run("bin/gomobile", args...)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	if b.BuildConfig.Build.IOS != nil {
+		args := []string{"bind"}
+		if b.Verbose {
+			args = append(args, "-v")
+		}
+
+		if len(b.BuildConfig.Build.IOS.Out) == 0 {
+			b.BuildConfig.Build.IOS.Out = Path("./" + b.BuildConfig.Project + ".framework")
+		}
+		outFile := b.BuildConfig.Build.IOS.Out.Resolve(b.BaseDir)
+		args = append(args, "-o", outFile.String())
+
+		if len(b.BuildConfig.Build.IOS.Prefix) > 0 {
+			args = append(args, "-prefix", b.BuildConfig.Build.IOS.Prefix)
+		}
+		args = append(args, "-target=ios")
+
+		args = append(args, b.BuildConfig.Exports...)
+		err := b.Run("bin/gomobile", args...)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // EnsureGoMobile tries to execute gomobile
 func (b *Builder) EnsureGoMobile() {
 	b.Chdir(b.GoPath)
@@ -158,10 +217,11 @@ func (b *Builder) EnsureGoMobile() {
 }
 
 // CopyModulesToWorkspace does what the names says
-func (b *Builder) CopyModulesToWorkspace() {
+func (b *Builder) CopyModulesToWorkspace() error {
+	dependencies := make(map[string]VendoredModule)
 	b.Chdir(b.GoPath)
 	b.SetEnv("GO111MODULE", "on")
-	for _, modPath := range b.Build.Imports {
+	for _, modPath := range b.BuildConfig.Imports {
 		resolvedPath := modPath.Resolve(b.BaseDir)
 		if b.Verbose {
 			b.PP("processing module %s", resolvedPath)
@@ -171,20 +231,20 @@ func (b *Builder) CopyModulesToWorkspace() {
 			b.Failf("expected '%s' to have a go.mod file. This is not a go module: %v", resolvedPath, err)
 		}
 		if b.Verbose {
-			b.PP("  name is '%s'", modName)
+			b.PP("name is '%s'", modName)
 		}
 
 		// copy declared go modules into go path
 		targetDir := b.GoPath.Child("src").Add(Path(modName))
 		if b.Verbose {
-			b.PP("  removing to '%s'", targetDir)
+			b.PP("removing to '%s'", targetDir)
 		}
 		err = os.RemoveAll(targetDir.String())
 		if err != nil {
 			b.Failf("failed to clear directory %s: %v", targetDir, err)
 		}
 		if b.Verbose {
-			b.PP("  copying to '%s'", targetDir)
+			b.PP("copying to '%s'", targetDir)
 		}
 
 		err = CopyDir(resolvedPath.String(), targetDir.String())
@@ -192,13 +252,78 @@ func (b *Builder) CopyModulesToWorkspace() {
 			b.Failf("failed to copy directory %s: %v", targetDir, err)
 		}
 
-		// vendor module dependencies
+		// vendor module dependencies for each module
 		b.Chdir(targetDir)
 		err = b.Run("go", "mod", "vendor")
 		if err != nil {
 			b.Failf("failed to vendor module dependencies: %v", err)
 		}
 
+		modules, err := ParseModulesTxT(targetDir.Child("vendor").Child("modules.txt").String())
+		if err != nil {
+			b.Failf("failed to parse vendor module information: %v", err)
+		}
+
+		// collected and inspect all modules: upgrade to the largest declared version, causing potential semver conflict
+		for _, mod := range modules {
+			if b.Verbose {
+				b.PP("dependency %s@%s", mod.ModuleName, mod.Version.String())
+			}
+			dep, ok := dependencies[mod.ModuleName]
+
+			if !ok || mod.Version.IsNewer(dep.Version) {
+				dependencies[mod.ModuleName] = mod
+				dep = mod
+
+				if b.Verbose {
+					b.PP("module %s upgraded to %s", mod.ModuleName, mod.Version.String())
+				}
+			}
+		}
 	}
+
+	// we collected all dependencies, now copy it into the workspace/gopath
+	for _, dep := range dependencies {
+		targetDir := b.GoPath.Child("src").Add(Path(dep.ModuleName))
+		err := os.RemoveAll(targetDir.Parent().String())
+		if err != nil {
+			return fmt.Errorf("failed to remove module target directory: %v", err)
+		}
+		err = os.MkdirAll(targetDir.Parent().String(), os.ModePerm)
+		if err != nil {
+			return fmt.Errorf("failed to create module target directory: %v", err)
+		}
+		if b.Verbose {
+			b.PP("moving dependency %s->%s", dep.Local.String(), targetDir.String())
+		}
+		err = os.Rename(dep.Local.String(), targetDir.String())
+		if err != nil {
+			return fmt.Errorf("failed to move: %s->%s: %v", dep.Local.String(), targetDir.String(), err)
+		}
+	}
+
+	// clear all vendor directories in copied modules
+	for _, modPath := range b.BuildConfig.Imports {
+		resolvedPath := modPath.Resolve(b.BaseDir)
+		modName, err := getModuleName(resolvedPath.Child("go.mod"))
+		if err != nil {
+			panic(err) // handled above already
+		}
+		targetDir := b.GoPath.Child("src").Add(Path(modName)).Add("vendor")
+
+		if b.Verbose {
+			b.PP("removing vendor folder from module: %s", targetDir)
+		}
+		err = os.RemoveAll(targetDir.String())
+		if err != nil {
+			return fmt.Errorf("failed to remove: %s: %v", targetDir, err)
+		}
+
+	}
+	return nil
 }
 
+// StopWatch just prints a duration
+func (b *Builder) StopWatch(t time.Time, msg string) {
+	b.PP("%s: %s", msg, time.Now().Sub(t))
+}
