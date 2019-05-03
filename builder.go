@@ -35,6 +35,46 @@ type Builder struct {
 
 	// CWD is the current working dir and will change from step to step
 	CWD Path
+
+	// BuildCache collects information from all of our builds
+	BuildCache *BuildCache
+}
+
+// IsBuildRequired tries to detect if we need to build again. Because gomobile/cgo compiles really slowly we want to
+// avoid that in any case (e.g. 30s for hello world on a beefy machine) which takes a fraction of a second
+// for go itself.
+func (b *Builder) IsBuildRequired() bool {
+	cacheFile := b.BuildDir.Child("build.cache")
+	b.BuildCache = &BuildCache{}
+	err := b.BuildCache.Load(cacheFile.String())
+	if err != nil && b.Verbose {
+		b.PP("failed to load the build cache file, could be normal: %v", err)
+		return true
+	}
+
+	inHash := b.calculateInHash()
+	outHash := b.calculateOutHash()
+
+	if b.BuildCache.InHash != inHash || b.BuildCache.OutHash != outHash {
+		if b.Verbose {
+			b.PP("build cache indicates file changes")
+		}
+		return true
+	}
+	return false
+}
+
+func (b *Builder) UpdateBuildCache() {
+	inHash := b.calculateInHash()
+	outHash := b.calculateOutHash()
+
+	b.BuildCache.InHash = inHash
+	b.BuildCache.OutHash = outHash
+	cacheFile := b.BuildDir.Child("build.cache")
+	err := b.BuildCache.Save(cacheFile.String())
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 // Failf prints to the console and terminates the process
@@ -94,6 +134,11 @@ func (b *Builder) Init() {
 	b.BuildConfig = cfg
 	b.BuildDir = b.HomeDir.Child(cfg.Project)
 	b.GoPath = b.HomeDir.Child(cfg.Project).Child("workspace")
+
+
+	if len(b.BuildConfig.Build.Android.Out) == 0 {
+		b.BuildConfig.Build.Android.Out = Path("./" + b.BuildConfig.Project + ".aar")
+	}
 
 	if b.Verbose {
 		b.PP("loaded build configuration: %s", cfg.String())
@@ -155,9 +200,7 @@ func (b *Builder) Gomobile() error {
 			args = append(args, "-v")
 		}
 
-		if len(b.BuildConfig.Build.Android.Out) == 0 {
-			b.BuildConfig.Build.Android.Out = Path("./" + b.BuildConfig.Project + ".aar")
-		}
+
 		outFile := b.BuildConfig.Build.Android.Out.Resolve(b.BaseDir)
 		args = append(args, "-o", outFile.String())
 

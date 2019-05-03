@@ -44,6 +44,14 @@ func main() {
 
 	builder := &Builder{}
 	builder.Init()
+
+	if !builder.IsBuildRequired() {
+		builder.PP("everything is up to date, nothing to do")
+		builder.StopWatch(total, "total")
+		os.Exit(0)
+	}
+
+
 	builder.EnsureGoMobile()
 	builder.StopWatch(start, "preparation")
 
@@ -61,6 +69,8 @@ func main() {
 		fmt.Println("failed to compile with gomobile:", err)
 		os.Exit(-1)
 	}
+	builder.UpdateBuildCache()
+
 	builder.StopWatch(start, "gomobile")
 	builder.StopWatch(total, "total")
 

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -109,4 +110,22 @@ func CopyFile(src, dst string) error {
 		return err
 	}
 	return os.Chmod(dst, srcinfo.Mode())
+}
+
+func ListFiles(root string) ([]string, error) {
+	files := make([]string, 0)
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if strings.HasPrefix(info.Name(), ".") {
+			if info.IsDir() {
+				return filepath.SkipDir
+			} else {
+				return nil
+			}
+
+		}
+
+		files = append(files, path)
+		return nil
+	})
+	return files, err
 }
