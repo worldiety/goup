@@ -10,6 +10,10 @@ gopath, invokes gomobile and returns a fat crossplatform library back to you.
 go get github.com/worldiety/gomobilebuilder
 ```
 
+## Example
+
+See the [Android tutorial](howto-android.md)
+
 ## how to build
 
 Invoke the gomobilebuilder from within a directory of your choice. It must contain a valid gomobile.build file which may look like this
