@@ -40,7 +40,7 @@ type Android struct {
 	//Package defines the -javapkg value for gomobile
 	Package string `json:"pkg"`
 	//Out defines the -o value for gomobile
-	Out Path `json:"prefix"`
+	Out Path `json:"out"`
 	//Ldflags defines the -ldflags for gomobile
 	Ldflags string `json:"ldflags"`
 }

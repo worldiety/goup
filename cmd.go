@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const version = "0.0.1"
+const version = "0.0.2"
 
 func evaluateFlags() (workingDir Path, buildFile Path, homeDir Path, verbose bool) {
 	defaultHome, err := os.UserHomeDir()
