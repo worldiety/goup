@@ -5,9 +5,11 @@ func main() {
 	args := &Args{}
 	args.Evaluate()
 
-	_, err := NewGoup(args)
+	gp, err := NewGoup(args)
 	must(err)
 
+	err = gp.Build()
+	must(err)
 
 	/*
 

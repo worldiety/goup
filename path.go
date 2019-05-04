@@ -1,6 +1,9 @@
 package main
 
-import "strings"
+import (
+	"os"
+	"strings"
+)
 
 // Path is our helper for real paths, copied from our VFS, we should introduce a module for that alone
 type Path string
@@ -76,6 +79,21 @@ func (p Path) Child(name string) Path {
 		return Path(p.String() + name)
 	}
 	return Path(p.String() + "/" + name)
+}
+
+// Exists checks if the (absolute) file exists
+func (p Path) Exists() bool {
+	_, err := os.Stat(p.String())
+	return err == nil
+}
+
+// IsDir checks if path represents a directory
+func (p Path) IsDir() bool {
+	stat, err := os.Stat(p.String())
+	if err != nil {
+		return false
+	}
+	return stat.IsDir()
 }
 
 // TrimPrefix returns a path without the prefix

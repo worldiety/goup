@@ -1,9 +1,15 @@
 package main
 
 import (
+	"archive/tar"
+	"compress/gzip"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -20,7 +26,7 @@ func CWD() string {
 }
 
 // mkdirs ensures the path existence
-func mkdirs(fname Path) error{
+func mkdirs(fname Path) error {
 	return os.MkdirAll(fname.String(), os.ModePerm)
 }
 
@@ -127,4 +133,107 @@ func ListFiles(root string) ([]string, error) {
 		return nil
 	})
 	return files, err
+}
+
+// IsEmpty returns true if given string only consists of whitespace chars or is empty
+func IsEmpty(str string) bool {
+	return len(strings.TrimSpace(str)) == 0
+}
+
+// Sha256 calculates a Sha256 hash from the given stromg
+func Sha256(str string) string {
+	t := sha256.Sum256([]byte(str))
+	return hex.EncodeToString(t[:])
+}
+
+// Downloads a large file without memory buffering
+func DownloadFile(url string, dstFile string) error {
+	logger.Debug(Fields{"action": "downloading", "url": url, "dst": dstFile})
+
+	out, err := os.Create(dstFile)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Check server response
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("cannot download, bad status: %s", resp.Status)
+	}
+
+	// Writer the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug(Fields{"action": "completed", "url": url, "dst": dstFile})
+	return nil
+}
+
+func downloadAndUnpack(url string, targetFolder Path) error {
+	tmpFile := targetFolder.Parent().Child(Sha256(url) + ".tmp")
+	err := DownloadFile(url, tmpFile.String())
+	if err != nil {
+		return err
+	}
+	srcFile, err := os.OpenFile(tmpFile.String(), os.O_RDONLY, 0)
+	if err != nil {
+		return err
+	}
+
+	lname := strings.ToLower(url)
+	if strings.HasSuffix(lname, ".tar.gz") {
+		uncompressedStream, err := gzip.NewReader(srcFile)
+		if err != nil {
+			log.Fatal("ExtractTarGz: NewReader failed")
+		}
+		return UnTar(uncompressedStream, targetFolder)
+	}
+
+	return fmt.Errorf("unsupported file format: %s", filepath.Ext(lname))
+}
+
+// UnTar extracts all files from the given stream (tar file) into the given path
+func UnTar(tarstream io.Reader, dst Path) error {
+	tarReader := tar.NewReader(tarstream)
+
+	for true {
+		header, err := tarReader.Next()
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return fmt.Errorf("ExtractTar: Next() failed: %s", err.Error())
+		}
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := os.Mkdir(dst.Add(Path(header.Name)).String(), 0755); err != nil {
+				return fmt.Errorf("ExtractTar: Mkdir() failed: %s", err.Error())
+			}
+		case tar.TypeReg:
+			outFile, err := os.Create(dst.Add(Path(header.Name)).String())
+			if err != nil {
+				return fmt.Errorf("ExtractTar: Create() failed: %s", err.Error())
+			}
+			if _, err := io.Copy(outFile, tarReader); err != nil {
+				_ = outFile.Close()
+				return fmt.Errorf("ExtractTar: Copy() failed: %s", err.Error())
+			}
+			_ = outFile.Close()
+		default:
+			return fmt.Errorf("ExtractTar: uknown type: %d in %s", header.Typeflag, header.Name)
+		}
+	}
+	return nil
 }

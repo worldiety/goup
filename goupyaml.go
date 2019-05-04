@@ -25,6 +25,11 @@ type GoUpConfiguration struct {
 	Build *Build
 }
 
+// HasAndroidBuild returns true if a gomobile android section is defined and enabled
+func (c *GoUpConfiguration) HasAndroidBuild() bool {
+	return c.Build.Gomobile == nil || c.Build.Gomobile.Android == nil || c.Build.Gomobile.Android.Disabled == false
+}
+
 // The build section defines what and how goup should work
 type Build struct {
 	Gomobile *BuildGomobile
@@ -33,7 +38,7 @@ type Build struct {
 // The BuildGomobile build, e.g. for ios or android
 type BuildGomobile struct {
 	// the toolchain section is required to setup a stable gomobile building experience
-	Toolchain *BuildGomobileToolchain
+	Toolchain BuildGomobileToolchain
 	// The ios section defines how our iOS library is build. This only works on MacOS with XCode installed
 	Ios *Ios
 	// The android section defines how our android build is executed

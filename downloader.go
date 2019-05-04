@@ -6,10 +6,9 @@ type Downloader interface {
 	Download(goup *Goup) error
 }
 
-type GoDownloader struct{
-
+type GoDownloader struct {
 }
 
 func (GoDownloader) Download(gp *Goup) error {
-
+	return nil
 }
