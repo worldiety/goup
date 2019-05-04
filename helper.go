@@ -20,15 +20,14 @@ func CWD() string {
 }
 
 // mkdirs ensures the path existence
-func mkdirs(fname Path) {
-	err := os.MkdirAll(fname.String(), os.ModePerm)
-	must(err)
+func mkdirs(fname Path) error{
+	return os.MkdirAll(fname.String(), os.ModePerm)
 }
 
 // must terminates the process if err is not nil
 func must(err error) {
 	if err != nil {
-		fmt.Println(err)
+		logger.Error(Fields{"err": err})
 		os.Exit(-1)
 	}
 }

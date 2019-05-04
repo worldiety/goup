@@ -1,15 +1,6 @@
 package main
 
-import (
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"os"
-	"strings"
-)
-
+/*
 // A BuildCacheProject contains information about a build, to decide if it should get compiled again.
 // Actually these are just the program arguments.
 //
@@ -114,3 +105,4 @@ func sloppyBytes(data []byte, err error) []byte {
 	}
 	return data
 }
+*/

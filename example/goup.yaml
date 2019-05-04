@@ -1,9 +1,6 @@
 # The name is used to setup a custom workspace and tools.
 # You should not invoke parallel builds for the same project
-name: MyFatCrossPlatformLib
-
-# The verbose flag for the build, to make goup very chatty
-verbose: true
+name: MySuperProject
 
 # The build section defines what and how goup should work
 build:
@@ -33,8 +30,8 @@ build:
       # The gomobile -ldflags flag
       ldflags:
 
-      # The enabled flag can be used to declare but disable this build
-      enabled: false
+      # The disabled flag can be used to declare but disable this build
+      disabled: true
 
     # The android section defines how our android build is executed
     android:
@@ -49,8 +46,14 @@ build:
       # The gomobile -ldflags flag
       ldflags:
 
-      # The enabled flag can be used to declare but disable this build
-      enabled: true
+      # The disabled flag can be used to declare but disable this build
+      disabled: false
+
+    # The modules section defines a list of all local or remote go modules, which should be included in the build.
+    # You can have more than one, but probably you only need a single one and want to use
+    # real go mod dependencies instead.
+    modules:
+      - ./libGo/mycompany/myproject
 
     # The export section defines all exported packages which are passed to gobind by gomobile.
     # Gomobile does not generate transitives exports, so you need to declare all
@@ -66,9 +69,5 @@ build:
       - mycompany/myproject/pkga
       - mycompany/myproject/pkgb
 
-  # The local-modules section defines a list of all local modules, which should be included in the build.
-  # You can have more than one, but probably you only need a single one and want to use
-  # real go mod dependencies instead.
-  local-modules:
-    - ./libGo/mycompany/myproject
+
 

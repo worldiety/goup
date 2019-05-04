@@ -1,0 +1,5 @@
+<resources>
+    <r name="go"    version="1.12.4"   os="darwin" arch="amd64" url="https://dl.google.com/go/go1.12.4.darwin-amd64.tar.gz"/>
+    <r name="ndk"   version="r19c"     os="darwin" arch="amd64" url="https://dl.google.com/android/repository/android-ndk-r19c-darwin-x86_64.zip"/>
+    <r name="sdk"   version="4333796"  os="darwin" arch="amd64" url="https://dl.google.com/android/repository/sdk-tools-darwin-4333796.zip"/>
+</resources>
