@@ -59,6 +59,8 @@ type BuildGomobileToolchain struct {
 	Ndk string
 	// which android sdk version? e.g. 4333796
 	Sdk string
+	// which java jdk version? e.g. 8u212b03
+	Jdk string
 }
 
 // The ios section defines how our iOS library is build. This only works on MacOS with XCode installed

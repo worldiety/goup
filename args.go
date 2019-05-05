@@ -43,14 +43,14 @@ func (a *Args) Evaluate() {
 	}
 	defaultHome = filepath.Join(defaultHome, "."+goup)
 
-	baseDir := flag.String("d", CWD(), "Use a custom directory to resolve relative paths from "+goup+".yml.")
-	buildFile := flag.String("b", "./"+goup+".yaml", "Use a build file to load.")
-	homeDir := flag.String("c", defaultHome, "Use this as the home directory, where "+GoUp+" holds toolchains, projects and workspaces.")
-	logLevel := flag.Int("l", int(Error), "The LogLevel determines what is printed into the console. 0=Debug, 1=Info, 2=Warn, 3=Error")
-	resourcesUrl := flag.String("r", defaultResourcesUrl, "XML which describes downloadable toolchains")
+	baseDir := flag.String("dir", CWD(), "Use a custom directory to resolve relative paths from "+goup+".yml.")
+	buildFile := flag.String("buildFile", "./"+goup+".yaml", "Use a build file to load.")
+	homeDir := flag.String("home", defaultHome, "Use this as the home directory, where "+goUp+" holds toolchains, projects and workspaces.")
+	logLevel := flag.Int("loglevel", int(Error), "The LogLevel determines what is printed into the console. 0=Debug, 1=Info, 2=Warn, 3=Error")
+	resourcesUrl := flag.String("resources", defaultResourcesUrl, "XML which describes downloadable toolchains")
 	targets := flag.String("targets", "all", "The targets to build, e.g. gomobile/android or gomobile/ios. Can be concated by :")
 
-	showVersion := flag.Bool("v", false, "Shows the version")
+	showVersion := flag.Bool("version", false, "Shows the version")
 	showHelp := flag.Bool("help", false, "Shows this help")
 	doReset := flag.Bool("reset", false, "Performs a reset, delete the home directory and exits")
 	doClean := flag.Bool("clean", false, "Removes the project workspace, but keeps toolchains.")
@@ -62,7 +62,7 @@ func (a *Args) Evaluate() {
 	}
 
 	if *showVersion {
-		fmt.Println(GoUp + " " + version)
+		fmt.Println(goUp + " " + version)
 		os.Exit(0)
 	}
 
@@ -76,7 +76,7 @@ func (a *Args) Evaluate() {
 
 	logger = &defaultLogger{a.LogLevel}
 
-	logger.Debug(Fields{"Name": GoUp, "Version": version, "GOARCH": runtime.GOARCH, "GOOS": runtime.GOOS})
+	logger.Debug(Fields{"Name": goUp, "Version": version, "GOARCH": runtime.GOARCH, "GOOS": runtime.GOOS})
 	logger.Debug(Fields{"BaseDir": a.BaseDir, "BuildFile": a.BuildFile, "HomeDir": a.HomeDir, "LogLevel": a.LogLevel, "ResourcesUrl": a.ResourcesUrl, "Targets": a.Targets})
 
 	if *doReset {

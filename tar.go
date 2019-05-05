@@ -11,6 +11,12 @@ import (
 func UnTar(tarstream io.Reader, dst Path) error {
 	tarReader := tar.NewReader(tarstream)
 
+	type symlink struct {
+		old string
+		new string
+	}
+
+	symlinks := make([]symlink, 0)
 	for true {
 		header, err := tarReader.Next()
 
@@ -37,9 +43,23 @@ func UnTar(tarstream io.Reader, dst Path) error {
 				return fmt.Errorf("ExtractTar: Copy() failed: %s", err.Error())
 			}
 			_ = outFile.Close()
+		case tar.TypeSymlink:
+			src := dst.Add(Path(header.Name))
+			symlinks = append(symlinks, symlink{old: src.String(), new: header.Linkname})
+
 		default:
-			return fmt.Errorf("ExtractTar: uknown type: %d in %s", header.Typeflag, header.Name)
+			return fmt.Errorf("ExtractTar: unknown type: %d (%s) in %s", header.Typeflag, string(header.Typeflag), header.Name)
 		}
+	}
+
+	// postpone our symlink creation
+	for _, symlink := range symlinks {
+
+		// for the jdk, the meaning of .. seems to be broken. The information e.g. about the extracted jdk8u212-b03
+		// directory is lost, perhaps also a bug in the go tar reader?
+
+		logger.Error(Fields{"action": "symlink", "src": symlink.old, "dst": symlink.new})
+
 	}
 	return nil
 }

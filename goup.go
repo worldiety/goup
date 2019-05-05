@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-// Goup contains the actual state of the goup program
-type Goup struct {
+// GoUp contains the actual state of the GoUp program
+type GoUp struct {
 	// The program arguments
 	args *Args
 	// The parsed config
@@ -30,11 +30,14 @@ type Goup struct {
 
 	// cwd is the current working directory and used to launch external programs
 	cwd Path
+
+	// artifactCache contains information about the last build and is used to avoid unnecessary builds
+	artifactCache *ArtifactCache
 }
 
-// NewGoupBuilder creates a new Goup builder
-func NewGoup(args *Args) (*Goup, error) {
-	gp := &Goup{}
+// NewGoupBuilder creates a new GoUp builder
+func NewGoup(args *Args) (*GoUp, error) {
+	gp := &GoUp{}
 	gp.args = args
 	gp.config = &GoUpConfiguration{}
 	err := gp.config.Load(gp.args.BuildFile)
@@ -53,6 +56,7 @@ func NewGoup(args *Args) (*Goup, error) {
 		if err != nil {
 			return nil, err
 		}
+		os.Exit(0)
 	}
 
 	must(os.MkdirAll(gp.args.BaseDir.String(), os.ModePerm))
@@ -76,13 +80,13 @@ func NewGoup(args *Args) (*Goup, error) {
 }
 
 // setEnv set a key/value environment variable
-func (g *Goup) setEnv(key string, val string) {
+func (g *GoUp) setEnv(key string, val string) {
 	g.env[key] = val
 	logger.Debug(Fields{"$export": "env", key: val})
 }
 
 // loadResources only updates once a day or if the ~/.goup/resources.xml is missing
-func (g *Goup) loadResources() (*Resources, error) {
+func (g *GoUp) loadResources() (*Resources, error) {
 	file := g.args.HomeDir.Child("resources.xml")
 	stat, err := os.Stat(file.String())
 	if err != nil || time.Now().Sub(stat.ModTime()).Hours() > 24 {
@@ -112,10 +116,36 @@ func (g *Goup) loadResources() (*Resources, error) {
 	return res, nil
 }
 
+// prepareAndroidSDK is required because the SDK is still not yet functional after downloading.
+// Also it saves it things always in the wrong top level folder. Another wtf is that the sdkmanager
+// only works with Java 8, even though we have Java 11 today.
+func (g *GoUp) prepareAndroidSDK() error {
+	sdkHome := Path(g.env["ANDROID_HOME"])
+	if sdkHome.Child("platforms").Exists() {
+		return nil
+	}
+	g.chdir(sdkHome.Child("bin"))
+	_, err := g.Run2("./sdkmanager", []byte("y\n"), "platforms;android-28", "build-tools;28.0.3")
+	if err != nil {
+		return err
+	}
+
+	// just wtf: this version always writes the downloads into the wrong folder. I cannot get why, it does
+	// so also in the systems commandline, so its broken at all?
+	// This behavior does not make sense and every other tools expects it inside the sdk
+	_ = os.Rename(g.toolchainPath().Child(".knownPackages").String(), sdkHome.Child(".knownPackages").String())
+	_ = os.Rename(g.toolchainPath().Child("licenses").String(), sdkHome.Child("licenses").String())
+	_ = os.Rename(g.toolchainPath().Child("platforms").String(), sdkHome.Child("platforms").String())
+	_ = os.Rename(g.toolchainPath().Child("build-tools").String(), sdkHome.Child("build-tools").String())
+
+	return nil
+}
+
 // prepareGomobileToolchain downloads go, ndk and sdk
-func (g *Goup) prepareGomobileToolchain() error {
+func (g *GoUp) prepareGomobileToolchain() error {
 	resources := make([]Resource, 0)
 
+	// go
 	goVersion := g.config.Build.Gomobile.Toolchain.Go
 	if IsEmpty(goVersion) {
 		goVersion = "1.12.4"
@@ -126,6 +156,7 @@ func (g *Goup) prepareGomobileToolchain() error {
 	}
 	resources = append(resources, res)
 
+	// android ndk
 	ndkVersion := g.config.Build.Gomobile.Toolchain.Ndk
 	if IsEmpty(ndkVersion) {
 		ndkVersion = "r19c"
@@ -138,13 +169,27 @@ func (g *Goup) prepareGomobileToolchain() error {
 		resources = append(resources, res)
 	}
 
+	// android sdk
 	sdkVersion := g.config.Build.Gomobile.Toolchain.Sdk
 	if IsEmpty(sdkVersion) {
 		sdkVersion = "433796"
 	}
 	res, err = g.resources.Get("sdk", sdkVersion)
 	if err != nil {
-		return fmt.Errorf("cannot prepare android build: %v", err)
+		return fmt.Errorf("cannot prepare android sdk: %v", err)
+	}
+	if g.hasAndroidBuild() {
+		resources = append(resources, res)
+	}
+
+	// java jdk
+	jdkVersion := g.config.Build.Gomobile.Toolchain.Jdk
+	if IsEmpty(jdkVersion) {
+		sdkVersion = "8u212b03"
+	}
+	res, err = g.resources.Get("jdk", jdkVersion)
+	if err != nil {
+		return fmt.Errorf("cannot prepare jdk: %v", err)
 	}
 	if g.hasAndroidBuild() {
 		resources = append(resources, res)
@@ -164,6 +209,19 @@ func (g *Goup) prepareGomobileToolchain() error {
 		err := downloadAndUnpack(res.Url, tmpTargetFolder)
 		if err != nil {
 			return fmt.Errorf("failed to provide resource: %s: %v", res.String(), err)
+		}
+
+		// remove garbage
+		for _, file := range tmpTargetFolder.List() {
+			// remove hidden java virus files?
+			if strings.HasPrefix(file.Name(), ".") && strings.Contains(file.Name(), "jdk") && !file.IsDir() {
+				_ = os.Remove(file.String())
+			}
+
+			// finder trash stuff
+			if file.Name() == ".DS_Store" {
+				_ = os.Remove(file.String())
+			}
 		}
 
 		files, err := ioutil.ReadDir(tmpTargetFolder.String())
@@ -193,10 +251,19 @@ func (g *Goup) prepareGomobileToolchain() error {
 	}
 
 	goRoot := g.args.HomeDir.Child("toolchains").Child("go-" + goVersion)
+	javaHome := g.args.HomeDir.Child("toolchains").Child("jdk-" + jdkVersion).Child("Contents").Child("Home")
+	sdkHome := g.args.HomeDir.Child("toolchains").Child("sdk-" + sdkVersion)
 
 	g.setEnv("GOROOT", goRoot.String())
 	g.setEnv("GOPATH", g.goPath().String())
-	g.setEnv("PATH", goRoot.Child("bin").String()+":"+g.goPath().Child("bin").String()+":"+g.env["PATH"])
+	g.setEnv("PATH",
+		goRoot.Child("bin").String()+":"+
+			g.goPath().Child("bin").String()+":"+
+			javaHome.Child("bin").String()+":"+
+			sdkHome.String()+":"+
+			sdkHome.Child("bin").String()+":"+
+			g.env["PATH"])
+
 	err = os.MkdirAll(g.goPath().String(), os.ModePerm)
 	if err != nil {
 		return err
@@ -207,29 +274,42 @@ func (g *Goup) prepareGomobileToolchain() error {
 	g.setEnv("ANDROID_NDK_HOME", g.args.HomeDir.Child("toolchains").Child("ndk-" + ndkVersion).String())
 	g.setEnv("NDK_PATH", g.env["ANDROID_NDK_HOME"])
 	g.setEnv("ANDROID_HOME", g.args.HomeDir.Child("toolchains").Child("sdk-" + sdkVersion).String())
+	g.setEnv("ANDROID_SDK_ROOT", g.env["ANDROID_HOME"])
 
+	g.setEnv("JAVA_HOME", javaHome.String())
+
+	_, _ = g.Run("java", "-version")
 	return nil
 }
 
 // goPath returns the artificial goPath
-func (g *Goup) goPath() Path {
+func (g *GoUp) goPath() Path {
 	return g.buildDir.Child("go")
+}
+
+// toolchainPath returns the path for the toolchains
+func (g *GoUp) toolchainPath() Path {
+	return g.args.HomeDir.Child("toolchains")
 }
 
 // chdir changes the working directory of GoUp, especially it determines in which context external programs are
 // executed
-func (g *Goup) chdir(path Path) {
+func (g *GoUp) chdir(path Path) {
 	g.cwd = path
 	logger.Debug(Fields{"cd": path})
 }
 
 // chmodX invokes chmod +x
-func (g *Goup) chmodX(path Path) error {
+func (g *GoUp) chmodX(path Path) error {
 	_, err := g.Run("chmod", "+x", path.String())
 	return err
 }
 
-func (g *Goup) Run(name string, args ...string) ([]string, error) {
+func (g *GoUp) Run(name string, args ...string) ([]string, error) {
+	return g.Run2(name, nil, args...)
+}
+
+func (g *GoUp) Run2(name string, pipeTo []byte, args ...string) ([]string, error) {
 	cmd := exec.Command(name, args...)
 
 	fields := Fields{}
@@ -246,6 +326,13 @@ func (g *Goup) Run(name string, args ...string) ([]string, error) {
 	logger.Debug(Fields{"exec": tmpCmd})
 
 	cmd.Dir = g.cwd.String()
+	if len(pipeTo) != 0 {
+		pipe, err := cmd.StdinPipe()
+		if err != nil {
+			return nil, err
+		}
+		_, _ = pipe.Write(pipeTo)
+	}
 
 	stdoutStderr, err := cmd.CombinedOutput()
 
@@ -262,7 +349,7 @@ func (g *Goup) Run(name string, args ...string) ([]string, error) {
 }
 
 // prepareGomobile installs gomobile into the gopath, if required
-func (g *Goup) prepareGomobile() error {
+func (g *GoUp) prepareGomobile() error {
 	if g.goPath().Child("bin").Child("gomobile").Exists() {
 		return nil
 	}
@@ -293,7 +380,7 @@ func (g *Goup) prepareGomobile() error {
 // copyModulesToWorkspace performs the heavy lifting to get gomobile happy with "modules".
 // It evaluates all module dependencies, collects them and copies the maximum resolved (by go mod vendor)
 // version into the workspace
-func (g *Goup) copyModulesToWorkspace() error {
+func (g *GoUp) copyModulesToWorkspace() error {
 	dependencies := make(map[string]VendoredModule)
 	g.chdir(g.goPath())
 	g.setEnv("GO111MODULE", "on")
@@ -396,7 +483,7 @@ func (g *Goup) copyModulesToWorkspace() error {
 }
 
 // hasTargets checks if the target is defined
-func (g *Goup) hasTarget(target string) bool {
+func (g *GoUp) hasTarget(target string) bool {
 	for _, s := range g.args.Targets {
 		if s == target || s == "all" {
 			return true
@@ -406,16 +493,16 @@ func (g *Goup) hasTarget(target string) bool {
 }
 
 // hasAndroidBuild returns true if a gomobile android section is defined and enabled
-func (g *Goup) hasAndroidBuild() bool {
-	return g.config.Build.Gomobile != nil || g.config.Build.Gomobile.Android != nil && g.hasTarget("gomobile/android")
+func (g *GoUp) hasAndroidBuild() bool {
+	return g.config.Build.Gomobile != nil && g.config.Build.Gomobile.Android != nil && g.hasTarget("gomobile/android")
 }
 
 // hasIosBuild returns true if a gomobile ios section is defined and enabled
-func (g *Goup) hasIosBuild() bool {
-	return g.config.Build.Gomobile != nil || g.config.Build.Gomobile.Ios != nil && g.hasTarget("gomobile/ios")
+func (g *GoUp) hasIosBuild() bool {
+	return g.config.Build.Gomobile != nil && g.config.Build.Gomobile.Ios != nil && g.hasTarget("gomobile/ios")
 }
 
-func (g *Goup) compileGomobile() error {
+func (g *GoUp) compileGomobile() error {
 	logger.Debug(Fields{"action": "compiling gomobile"})
 	g.chdir(g.goPath())
 	g.setEnv("GO111MODULE", "off")
@@ -462,8 +549,53 @@ func (g *Goup) compileGomobile() error {
 	return nil
 }
 
+// isBuildRequired tries to detect if we need to build again. Because gomobile/cgo compiles really slow we want to
+// avoid that in any case (e.g. 30s for "hello world" on a beefy machine) which takes a fraction of a second
+// for go itself.
+func (g *GoUp) isBuildRequired() bool {
+	cacheFile := g.buildDir.Child("artifacts.json")
+	g.artifactCache = &ArtifactCache{}
+	err := g.artifactCache.Load(cacheFile.String())
+	if err != nil {
+		logger.Debug(Fields{"msg": "failed to load the build cache file, could be normal", "err": err.Error()})
+		return true
+	}
+
+	inHash := g.calculateInHash()
+	outHash := g.calculateOutHash()
+
+	if g.artifactCache.InHash != inHash || g.artifactCache.OutHash != outHash {
+		logger.Debug(Fields{"msg": "build cache indicates file changes"})
+		return true
+	}
+	logger.Debug(Fields{"msg": "no need to build again"})
+	return false
+}
+
+// updateBuildCache calculates and writes the current in/out hashes
+func (g *GoUp) updateBuildCache() {
+	inHash := g.calculateInHash()
+	outHash := g.calculateOutHash()
+
+	g.artifactCache.InHash = inHash
+	g.artifactCache.OutHash = outHash
+	cacheFile := g.buildDir.Child("artifacts.json")
+	err := g.artifactCache.Save(cacheFile.String())
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 // Build performs the actual build process
-func (g *Goup) Build() error {
+func (g *GoUp) Build() error {
+	started := time.Now()
+	defer func() {
+		logger.Info(Fields{"msg": "build done", "time": time.Now().Sub(started).String()})
+	}()
+	if !g.isBuildRequired() {
+		return nil
+	}
+
 	err := g.prepareGomobileToolchain()
 	if err != nil {
 		return fmt.Errorf("failed to prepare gomobile build: %v", err)
@@ -472,6 +604,11 @@ func (g *Goup) Build() error {
 	err = g.prepareGomobile()
 	if err != nil {
 		return err
+	}
+
+	err = g.prepareAndroidSDK()
+	if err != nil {
+		return fmt.Errorf("failed to init android sdk: %v", err)
 	}
 
 	err = g.copyModulesToWorkspace()
@@ -483,5 +620,7 @@ func (g *Goup) Build() error {
 	if err != nil {
 		return err
 	}
+
+	g.updateBuildCache()
 	return nil
 }

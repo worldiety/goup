@@ -6,6 +6,7 @@ type HelloCallback interface {
 	YourName() string
 }
 
+
 // NiceCallback takes a callback and invokes it
 func NiceCallback(cb HelloCallback) string {
 	return "hello " + cb.YourName()

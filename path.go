@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -142,6 +143,15 @@ func (p Path) Resolve(baseDir Path) Path {
 // Add returns this path concated with the given path. Sadly we have no overloading operator.
 func (p Path) Add(path Path) Path {
 	return ConcatPaths(p, path)
+}
+
+// List returns the list of accessible children
+func (p Path) List() (children []Path) {
+	files, _ := ioutil.ReadDir(p.String())
+	for _, f := range files {
+		children = append(children, p.Child(f.Name()))
+	}
+	return
 }
 
 // ConcatPaths merges all paths together
