@@ -30,8 +30,6 @@ build:
       # The gomobile -ldflags flag
       ldflags:
 
-      # The disabled flag can be used to declare but disable this build
-      disabled: true
 
     # The android section defines how our android build is executed
     android:
@@ -46,8 +44,6 @@ build:
       # The gomobile -ldflags flag
       ldflags:
 
-      # The disabled flag can be used to declare but disable this build
-      disabled: false
 
     # The modules section defines a list of all local or remote go modules, which should be included in the build.
     # You can have more than one, but probably you only need a single one and want to use

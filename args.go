@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 // Args contains the arguments which have been used to invoke GoUp
@@ -24,6 +25,12 @@ type Args struct {
 
 	// ResourcesUrl is used to update the external resources list
 	ResourcesUrl string
+
+	// Targets contains the different build targets, e.g. gomobile/android or gomobile/ios
+	Targets []string
+
+	// ClearWorkspace does not reuse the workspace
+	ClearWorkspace bool
 }
 
 // Evaluate reads all flags and parses them into the receiver.
@@ -41,9 +48,12 @@ func (a *Args) Evaluate() {
 	homeDir := flag.String("c", defaultHome, "Use this as the home directory, where "+GoUp+" holds toolchains, projects and workspaces.")
 	logLevel := flag.Int("l", int(Error), "The LogLevel determines what is printed into the console. 0=Debug, 1=Info, 2=Warn, 3=Error")
 	resourcesUrl := flag.String("r", defaultResourcesUrl, "XML which describes downloadable toolchains")
+	targets := flag.String("targets", "all", "The targets to build, e.g. gomobile/android or gomobile/ios. Can be concated by :")
 
 	showVersion := flag.Bool("v", false, "Shows the version")
 	showHelp := flag.Bool("help", false, "Shows this help")
+	doReset := flag.Bool("reset", false, "Performs a reset, delete the home directory and exits")
+	doClean := flag.Bool("clean", false, "Removes the project workspace, but keeps toolchains.")
 
 	flag.Parse()
 	if *showHelp {
@@ -61,7 +71,16 @@ func (a *Args) Evaluate() {
 	a.HomeDir = Path(*homeDir)
 	a.LogLevel = LogLevel(*logLevel)
 	a.ResourcesUrl = *resourcesUrl
+	a.Targets = strings.Split(*targets, ":")
+	a.ClearWorkspace = *doClean
+
+	logger = &defaultLogger{a.LogLevel}
 
 	logger.Debug(Fields{"Name": GoUp, "Version": version, "GOARCH": runtime.GOARCH, "GOOS": runtime.GOOS})
-	logger.Debug(Fields{"BaseDir": a.BaseDir, "BuildFile": a.BuildFile, "HomeDir": a.HomeDir, "LogLevel": a.LogLevel, "ResourcesUrl": a.ResourcesUrl})
+	logger.Debug(Fields{"BaseDir": a.BaseDir, "BuildFile": a.BuildFile, "HomeDir": a.HomeDir, "LogLevel": a.LogLevel, "ResourcesUrl": a.ResourcesUrl, "Targets": a.Targets})
+
+	if *doReset {
+		err := os.RemoveAll(a.HomeDir.String())
+		must(err)
+	}
 }

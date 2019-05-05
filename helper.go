@@ -1,19 +1,19 @@
 package main
 
 import (
-	"archive/tar"
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 )
 
 //CWD returns the current working dir or panics if it is unknown
@@ -168,8 +168,17 @@ func DownloadFile(url string, dstFile string) error {
 		return fmt.Errorf("cannot download, bad status: %s", resp.Status)
 	}
 
+	lastPrinted := time.Now()
+	pgReader := &progressReader{resp.ContentLength, 0, func(read int64, max int64) {
+		p := int(float64(read) / float64(max) * 100)
+		if time.Now().Sub(lastPrinted).Seconds() > 15 {
+			lastPrinted = time.Now()
+			logger.Info(Fields{"action": "progress", "status": strconv.Itoa(p) + "%"})
+		}
+	}, resp.Body}
+
 	// Writer the body to file
-	_, err = io.Copy(out, resp.Body)
+	_, err = io.Copy(out, pgReader)
 	if err != nil {
 		return err
 	}
@@ -180,6 +189,8 @@ func DownloadFile(url string, dstFile string) error {
 
 func downloadAndUnpack(url string, targetFolder Path) error {
 	tmpFile := targetFolder.Parent().Child(Sha256(url) + ".tmp")
+	defer os.Remove(tmpFile.String())
+
 	err := DownloadFile(url, tmpFile.String())
 	if err != nil {
 		return err
@@ -193,47 +204,31 @@ func downloadAndUnpack(url string, targetFolder Path) error {
 	if strings.HasSuffix(lname, ".tar.gz") {
 		uncompressedStream, err := gzip.NewReader(srcFile)
 		if err != nil {
-			log.Fatal("ExtractTarGz: NewReader failed")
+			return fmt.Errorf("gz stream failed: %v", err)
 		}
 		return UnTar(uncompressedStream, targetFolder)
+	}
+
+	if strings.HasSuffix(lname, ".zip") {
+		return Unzip(tmpFile.String(), targetFolder.String())
 	}
 
 	return fmt.Errorf("unsupported file format: %s", filepath.Ext(lname))
 }
 
-// UnTar extracts all files from the given stream (tar file) into the given path
-func UnTar(tarstream io.Reader, dst Path) error {
-	tarReader := tar.NewReader(tarstream)
-
-	for true {
-		header, err := tarReader.Next()
-
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return fmt.Errorf("ExtractTar: Next() failed: %s", err.Error())
-		}
-
-		switch header.Typeflag {
-		case tar.TypeDir:
-			if err := os.Mkdir(dst.Add(Path(header.Name)).String(), 0755); err != nil {
-				return fmt.Errorf("ExtractTar: Mkdir() failed: %s", err.Error())
-			}
-		case tar.TypeReg:
-			outFile, err := os.Create(dst.Add(Path(header.Name)).String())
-			if err != nil {
-				return fmt.Errorf("ExtractTar: Create() failed: %s", err.Error())
-			}
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				_ = outFile.Close()
-				return fmt.Errorf("ExtractTar: Copy() failed: %s", err.Error())
-			}
-			_ = outFile.Close()
-		default:
-			return fmt.Errorf("ExtractTar: uknown type: %d in %s", header.Typeflag, header.Name)
-		}
-	}
-	return nil
+type progressReader struct {
+	max      int64
+	current  int64
+	callback func(read int64, max int64)
+	delegate io.Reader
 }
+
+func (r *progressReader) Read(p []byte) (n int, err error) {
+	n, err = r.delegate.Read(p)
+	r.current += int64(n)
+	if r.callback != nil {
+		r.callback(r.current, r.max)
+	}
+	return n, err
+}
+

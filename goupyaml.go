@@ -25,10 +25,7 @@ type GoUpConfiguration struct {
 	Build *Build
 }
 
-// HasAndroidBuild returns true if a gomobile android section is defined and enabled
-func (c *GoUpConfiguration) HasAndroidBuild() bool {
-	return c.Build.Gomobile == nil || c.Build.Gomobile.Android == nil || c.Build.Gomobile.Android.Disabled == false
-}
+
 
 // The build section defines what and how goup should work
 type Build struct {
@@ -51,7 +48,7 @@ type BuildGomobile struct {
 	// packages containing types and methods which you want to have bindings for.
 	// Be careful with name conflicts, because the last part of the package will be used
 	// to scope the types.
-	Export []GoModuleName
+	Export []string
 }
 
 // The BuildGomobileToolchain section is required to setup a stable gomobile building experience
@@ -86,8 +83,6 @@ type Android struct {
 	Out Path
 	// The gomobile -ldflags flag
 	Ldflags string
-	// The disabled flag can be used to declare but disable this build
-	Disabled bool
 }
 
 // Load reads a build.yaml file into the receiver
