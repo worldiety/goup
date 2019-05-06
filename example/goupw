@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # This script bootstraps the GoUp setup and should always be checked into the vcs repository.
 # It downloads the required GoUp version and executes it.
@@ -28,7 +28,7 @@ if [[ -f "$exec" ]]; then
 else
     mkdir -p .goup
     cd .goup
-    curl "https://cdn.worldiety.org/github.com/worldiety/goup/$VERSION/darwin-amd64/goup" --output $execName
+    curl "https://cdn.worldiety.org/github.com/worldiety/goup/$VERSION/$osarch/goup" --output $execName
     chmod +x $execName
     cd ..
 fi
