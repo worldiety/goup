@@ -43,6 +43,11 @@ func (a *Args) Evaluate() {
 	}
 	defaultHome = filepath.Join(defaultHome, "."+goup)
 
+	overriddenDefaultHome := os.Getenv("GOUP_HOME")
+	if len(overriddenDefaultHome) > 0 {
+		defaultHome = overriddenDefaultHome
+	}
+
 	baseDir := flag.String("dir", CWD(), "Use a custom directory to resolve relative paths from "+goup+".yml.")
 	buildFile := flag.String("buildFile", "./"+goup+".yaml", "Use a build file to load.")
 	homeDir := flag.String("home", defaultHome, "Use this as the home directory, where "+goUp+" holds toolchains, projects and workspaces.")

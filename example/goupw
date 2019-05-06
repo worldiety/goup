@@ -4,7 +4,7 @@
 # It downloads the required GoUp version and executes it.
 
 # Set the version as required.
-VERSION="v0.0.3"
+VERSION="v0.0.6"
 
 # Set the required targets (e.g. all|gomobile/android|gomobile/ios|gomobile/android:gomobile/ios)
 TARGETS="gomobile/android"

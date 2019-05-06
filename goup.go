@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/gofrs/flock"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -252,7 +254,11 @@ func (g *GoUp) prepareGomobileToolchain() error {
 	}
 
 	goRoot := g.args.HomeDir.Child("toolchains").Child("go-" + goVersion)
-	javaHome := g.args.HomeDir.Child("toolchains").Child("jdk-" + jdkVersion).Child("Contents").Child("Home")
+	javaHome := g.args.HomeDir.Child("toolchains").Child("jdk-" + jdkVersion)
+	if runtime.GOOS == "darwin" {
+		javaHome = javaHome.Child("Contents").Child("Home")
+	}
+
 	sdkHome := g.args.HomeDir.Child("toolchains").Child("sdk-" + sdkVersion)
 
 	g.setEnv("GOROOT", goRoot.String())
@@ -633,31 +639,60 @@ func (g *GoUp) Build() error {
 		return nil
 	}
 
-	err := g.prepareGomobileToolchain()
+	// the toolchains can only be modified by one process at once
+	fileLock := flock.New(g.args.HomeDir.Child("toolchain.lock").String())
+	err := fileLock.Lock()
 	if err != nil {
-		return fmt.Errorf("failed to prepare gomobile build: %v", err)
+		return fmt.Errorf("failed to aquire toolchain lock: %v", err)
 	}
 
-	err = g.prepareGomobile()
-	if err != nil {
-		return err
+	{
+		err = g.prepareGomobileToolchain()
+		if err != nil {
+			return fmt.Errorf("failed to prepare gomobile build: %v", err)
+		}
+
+		err = g.prepareGomobile()
+		if err != nil {
+			return err
+		}
+
+		err = g.prepareAndroidSDK()
+		if err != nil {
+			return fmt.Errorf("failed to init android sdk: %v", err)
+		}
 	}
 
-	err = g.prepareAndroidSDK()
+	err = fileLock.Unlock()
 	if err != nil {
-		return fmt.Errorf("failed to init android sdk: %v", err)
+		return fmt.Errorf("failed to unlock toolchains: %v", err)
 	}
 
-	err = g.copyModulesToWorkspace()
+	// only one project is allowed to be compiled at time
+	fileLock = flock.New(g.buildDir.Child("project.lock").String())
+	err = fileLock.Lock()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to aquire project lock: %v", err)
 	}
 
-	err = g.compileGomobile()
-	if err != nil {
-		return err
+	{
+		err = g.copyModulesToWorkspace()
+		if err != nil {
+			return err
+		}
+
+		err = g.compileGomobile()
+		if err != nil {
+			return err
+		}
+
+		g.updateBuildCache()
 	}
 
-	g.updateBuildCache()
+	err = fileLock.Unlock()
+	if err != nil {
+		return fmt.Errorf("failed to unlock project: %v", err)
+	}
+
 	return nil
 }
