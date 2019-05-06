@@ -12,3 +12,6 @@
 *.out
 .idea
 gomobilebuilder
+example/.goup
+fatLib-sources.jar
+fatLib.aar

@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+# This script bootstraps the GoUp setup and should always be checked into the vcs repository.
+# It downloads the required GoUp version and executes it.
+
+# Set the version as required.
+VERSION="v0.0.3"
+
+# Set the required targets (e.g. all|gomobile/android|gomobile/ios|gomobile/android:gomobile/ios)
+TARGETS="gomobile/android"
+
+################
+
+set -e
+
+execName="goup$VERSION"
+exec=".goup/$execName"
+
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    osarch="darwin-amd64"
+else
+    osarch="linux-amd64"
+fi
+
+if [[ -f "$exec" ]]; then
+   echo ""
+else
+    mkdir -p .goup
+    cd .goup
+    curl "https://cdn.worldiety.org/github.com/worldiety/goup/$VERSION/darwin-amd64/goup" --output $execName
+    chmod +x $execName
+    cd ..
+fi
+
+buildDir=$(pwd)
+
+"$exec" -version
+
+"$exec" -dir "$buildDir" -loglevel 0 -targets "$TARGETS"
+

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -256,6 +257,7 @@ func (g *GoUp) prepareGomobileToolchain() error {
 
 	g.setEnv("GOROOT", goRoot.String())
 	g.setEnv("GOPATH", g.goPath().String())
+	g.cleanGoPath()
 	g.setEnv("PATH",
 		goRoot.Child("bin").String()+":"+
 			g.goPath().Child("bin").String()+":"+
@@ -270,6 +272,8 @@ func (g *GoUp) prepareGomobileToolchain() error {
 	}
 
 	_, _ = g.Run("which", "go")
+	_, _ = g.Run("type", "-p", "go")
+	_, _ = g.Run("go", "version")
 
 	g.setEnv("ANDROID_NDK_HOME", g.args.HomeDir.Child("toolchains").Child("ndk-" + ndkVersion).String())
 	g.setEnv("NDK_PATH", g.env["ANDROID_NDK_HOME"])
@@ -280,6 +284,33 @@ func (g *GoUp) prepareGomobileToolchain() error {
 
 	_, _ = g.Run("java", "-version")
 	return nil
+}
+
+func (g *GoUp) cleanGoPath() {
+
+	dedub := make(map[string]string)
+	home, _ := os.UserHomeDir()
+	homeGo := filepath.Join(home, "go", "bin")
+
+	tmpPath := g.env["PATH"]
+	for _, path := range strings.Split(tmpPath, ":") {
+		switch path {
+		case "/usr/local/go/bin":
+			continue
+		case homeGo:
+			continue
+		case homeGo + "/":
+			continue
+		default:
+			dedub[path] = path
+		}
+	}
+	cleanPaths := make([]string, 0)
+	for k := range dedub {
+		cleanPaths = append(cleanPaths, k)
+	}
+
+	g.env["PATH"] = strings.Join(cleanPaths, ":")
 }
 
 // goPath returns the artificial goPath
@@ -310,6 +341,12 @@ func (g *GoUp) Run(name string, args ...string) ([]string, error) {
 }
 
 func (g *GoUp) Run2(name string, pipeTo []byte, args ...string) ([]string, error) {
+	// we need to assemble the path before execution
+	// because exec.Command uses LookPath before the environment has been set for execution
+	err := os.Setenv("PATH", g.env["PATH"])
+	if err != nil {
+		panic(err)
+	}
 	cmd := exec.Command(name, args...)
 
 	fields := Fields{}

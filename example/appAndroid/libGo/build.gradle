@@ -1,0 +1,11 @@
+configurations.maybeCreate("default")
+configurations.maybeCreate("source")
+artifacts.add("default", file('fatLib.aar'))
+artifacts.add("source", file('fatLib-sources.jar'))
+
+
+def proc = 'sh goupw'.execute(null,new File(".."))
+proc.waitForProcessOutput(System.out, System.err)
+if (proc.exitValue() != 0) {
+    throw new RuntimeException("GoUp failed to compile, inspect output")
+}

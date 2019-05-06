@@ -9,6 +9,11 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.mycompany.myproject.myproject.Myproject;
+import com.mycompany.myproject.pkga.HelloCallback;
+import com.mycompany.myproject.pkga.Pkga;
+import com.mycompany.myproject.pkgb.Pkgb;
+
 public class MainActivity extends AppCompatActivity {
 
     @Override
@@ -22,8 +27,19 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                System.out.println(Myproject.anExportedProjectLevelFunc());
+                String fromGo = Pkga.niceCallback(new HelloCallback() {
+                    @Override
+                    public String yourName() {
+                        return "GoUp";
+                    }
+                });
+                System.out.println("Hello Mr. "+fromGo);
+                try {
+                    System.out.println(Pkgb.getMap2().get(Pkgb.getMap2().keys().get(0)));
+                }catch (Exception e){
+                    throw new RuntimeException(e);
+                }
             }
         });
     }
