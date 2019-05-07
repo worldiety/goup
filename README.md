@@ -1,58 +1,133 @@
-# gomobilebuilder
-The gomobilebuilder is a little helper to work around building issues with gomobile, like missing module support etc.
+# GoUp
+GoUp (pronounced go-up) is an install and make tool which helps to build go modules with 
+gomobile for android and ios. It contains an automatic versioned toolchain provisioning,
+emulated module (vgo) support for gomobile and an build artifact cache.  
 
-Sadly we need it: gomobilebuilder will pick up your local go modules, collects all dependencies, merges everything into an artifical
-gopath, invokes gomobile and returns a fat crossplatform library back to you.
+The motivation behind this tool is to bring the simplicity into the gomobile android world
+again. Today there are a lot of pitfalls to create a working setup, so we
+integrated all current workarounds for Linux/amd64 and MacOS/amd64 for a single selected
+toolchain into the tool. The name is inspired from *rustup*, the rust toolchain installer. 
+Like rustup, GoUp will manage different toolchains (Android NDK, SDK, Java JDK and Go) 
+in different versions, even for distinct projects, to provide you a stable build experience.
 
-## installation
+What is still missing is extensive testing, configuration of more NDK, SDK, JDK and Go versions 
+which are known to be compatible with each other, windows support and versioning of gomobile.
+Also the example project layout is created to support a crossplatform project
+layout, but still only contains an android project.
 
-```bash
-go get github.com/worldiety/gomobilebuilder
-```
+Our perspective is to evaluate the practicality and to develop and support this tool in the 
+case of success.
 
 ## Example
 
-See the [Android tutorial](howto-android.md)
+We've create an Android [example](https://github.com/worldiety/goup/tree/master/example) 
+for your pleasure. It contains the android module *libGo* which invokes the GoUp wrapper
+script (goupw) which in turn downloads the actual GoUp version for your current platform.
+The gradle script in *libGo* builds the go library intentionally in every configuration phase,
+which ensures that you have always the valid generated Java API at your fingertips. 
+Performance wise the impact is reduced, due to the GoUp artifact caching, which avoids 
+building if nothing has changed, so in subsequent configure calls the process completes within
+a few milliseconds. 
+
+To build, you just need to open the project with Android Studio and wait some minutes, until
+GoUp has downloaded and installed all required toolchains. To get some 'entertainment', you
+have to switch to the *Build Output* window and toggle the view in Android Studio.
+
+In general you should not check in the generated artifacts, because the generated aar
+file may not be deterministic (bitwise).
 
 ## how to build
 
-Invoke the gomobilebuilder from within a directory of your choice. It must contain a valid gomobile.build file which may look like this
-```json
-{
-  "project":"MyFatLib",
-  "build":{
-    "ios":{
-      "prefix":"MyLib",
-      "out":"./builds/MyLib.framework"
-    },
-    "android":{
-      "pkg": "com.mycompany.myproject",
-      "out": "fatlib.aar"
-    }
-  },
-  "import":[
-    "/avoid/absolute/paths/not/working/in/ci",
-    "../../use/relative/paths/instead",
-    "./my/local/module"
-  ],
-  "export":[
-    "mydomain.tld/company/prj/pkg",
-    "github.com/worldiety/std",
-    "my/local/module"
-  ]
-}
+The core of a GoUp project is the goup.yaml file, which contains all declared versions and related
+build information to process your project.
+
+The build yaml file may look like this:
+
+```yaml
+# The name is used to setup a custom workspace and tools.
+# You should not invoke parallel builds for the same project
+name: MySuperProject
+
+# The build section defines what and how goup should work
+build:
+  # We want a gomobile build, e.g. for ios or android
+  gomobile:
+
+    # the toolchain section is required to setup a stable gomobile building experience
+    toolchain:
+      # which go version?
+      go: 1.12.4
+      # which android ndk version?
+      ndk: r19c
+      # which android sdk version?
+      sdk: 4333796
+      # which java version?
+      jdk: 8u212b03
+
+    # The ios section defines how our iOS library is build. This only works on MacOS with XCode installed
+    ios:
+      # The gomobile -prefix flag
+      prefix: MyLib
+
+      # The gomobile -o flag, this will be a folder
+      out: ./appIOS/MyLib.framework
+
+      # The gomobile -bundleid flag sets the bundle ID to use with the app.
+      bundleid:
+
+      # The gomobile -ldflags flag
+      ldflags:
+
+
+    # The android section defines how our android build is executed
+    android:
+      # The gomobile -javapkg flag prefixes the generated packages
+      javapkg: com.mycompany.myproject
+
+      # The gomobile -o flag, this will be an android archive file. You should only ever use
+      # a single go library in your app. Otherwise there may be some technical issues and
+      # it also wastes a lot of storage and memory resources in your app.
+      out: ./appAndroid/libGo/libs/fatLib.aar
+
+      # The gomobile -ldflags flag
+      ldflags:
+
+
+    # The modules section defines a list of all local or remote go modules, which should be included in the build.
+    # You can have more than one, but probably you only need a single one and want to use
+    # real go mod dependencies instead.
+    modules:
+      - ./libGo/mycompany/myproject
+
+    # The export section defines all exported packages which are passed to gobind by gomobile.
+    # Gomobile does not generate transitives exports, so you need to declare all
+    # packages containing types and methods which you want to have bindings for.
+    # Be careful with name conflicts, because the last part of the package will be used
+    # to scope the types.
+    export:
+      # contains handsome wrappers to allow passing unsupported types (interfaces, maps, slices)
+      # through gomobile. In our case pkgb wants to export those types.
+      - github.com/worldiety/std
+      # our actual local packages
+      - mycompany/myproject
+      - mycompany/myproject/pkga
+      - mycompany/myproject/pkgb
+
+
+
 ```
-The *build* section defines what to build, so either android or ios or both, each with their own parameters. 
-The *import* section refers to local directories, which may be scattered throughout your developer (or ci) 
-system and must be local go modules (with go.mod file). These modules and their dependencies are merged back 
-into an artifical gopath, so that *gomobile* is happy and can find everything it needs. 
-The gopath is located at `~/.gomobilebuilder/<project>/workspace`. The last section *export* 
-specifies all packages from the merged gopath which you want to access through gomobile in your 
-final library. Please keep in mind, that you have to export also dependencies, if their types are 
-returned by (also already exported) packages. This is a limitation of gomobile and avoids cluttering 
-your bindings with unwanted contracts. If an exported package is missing, `go get` will be invoked to grab it (e.g.
-if it has not been pulled as a dependency already). Therefore it is valid to have only exports, and no imports.
-However an empty export list makes no sense.
+You always need an *export* list and every exported module should be declared (at least transitively)
+from your *module* projects. All referred dependencies are upgraded and copied into
+an artificial go path in `~/.goup/<project>/go`, so that gomobile is happy. You can also
+define more than one local module, e.g. if you have multiple local dependent or related
+modules. But probably it would be better to only ever have a single local module and
+refer to external versioned go dependencies.
+
+Toolchains are installed in `~/.goup/toolchains`, one for each type and version. Also
+GoUp uses interprocess filelocks for modifying toolchains and projects, to allow
+at least concurrent (but sequentialized) builds without corruptions.
 
 ## hint
-Important things like maps, slices, derived basic and value types won't work with gomobile. To mitigate these limitations, you can use the module https://github.com/worldiety/std. Do not forget to export it.
+Important things like maps, slices, derived basic and value types won't work with gomobile. 
+To mitigate these limitations, you can use the module https://github.com/worldiety/std. 
+Do not forget to export it, as shown in the example.
