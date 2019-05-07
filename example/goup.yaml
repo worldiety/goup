@@ -41,7 +41,7 @@ build:
       # The gomobile -o flag, this will be an android archive file. You should only ever use
       # a single go library in your app. Otherwise there may be some technical issues and
       # it also wastes a lot of storage and memory resources in your app.
-      out: ./appAndroid/libGo/fatLib.aar
+      out: ./appAndroid/libGo/libs/fatLib.aar
 
       # The gomobile -ldflags flag
       ldflags:

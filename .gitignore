@@ -16,3 +16,4 @@ example/.goup
 fatLib-sources.jar
 fatLib.aar
 builds
+example/appAndroid/libGo/build
