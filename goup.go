@@ -657,7 +657,7 @@ func (g *GoUp) Build() error {
 	fileLock := flock.New(g.args.HomeDir.Child("toolchain.lock").String())
 	err := fileLock.Lock()
 	if err != nil {
-		return fmt.Errorf("failed to aquire toolchain lock: %v", err)
+		return fmt.Errorf("failed to acquire toolchain lock: %v", err)
 	}
 
 	{
@@ -686,7 +686,7 @@ func (g *GoUp) Build() error {
 	fileLock = flock.New(g.buildDir.Child("project.lock").String())
 	err = fileLock.Lock()
 	if err != nil {
-		return fmt.Errorf("failed to aquire project lock: %v", err)
+		return fmt.Errorf("failed to acquire project lock: %v", err)
 	}
 
 	{
