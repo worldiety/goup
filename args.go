@@ -1,3 +1,17 @@
+// Copyright 2019 Torben Schinke
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
@@ -23,8 +37,8 @@ type Args struct {
 	// The LogLevel determines what is printed into the console
 	LogLevel LogLevel
 
-	// ResourcesUrl is used to update the external resources list
-	ResourcesUrl string
+	// ResourcesURL is used to update the external resources list
+	ResourcesURL string
 
 	// Targets contains the different build targets, e.g. gomobile/android or gomobile/ios
 	Targets []string
@@ -52,7 +66,7 @@ func (a *Args) Evaluate() {
 	buildFile := flag.String("buildFile", "./"+goup+".yaml", "Use a build file to load.")
 	homeDir := flag.String("home", defaultHome, "Use this as the home directory, where "+goUp+" holds toolchains, projects and workspaces.")
 	logLevel := flag.Int("loglevel", int(Error), "The LogLevel determines what is printed into the console. 0=Debug, 1=Info, 2=Warn, 3=Error")
-	resourcesUrl := flag.String("resources", defaultResourcesUrl, "XML which describes downloadable toolchains")
+	resourcesURL := flag.String("resources", defaultResourcesURL, "XML which describes downloadable toolchains")
 	targets := flag.String("targets", "all", "The targets to build, e.g. gomobile/android or gomobile/ios. Can be concated by :")
 
 	showVersion := flag.Bool("version", false, "Shows the version")
@@ -75,14 +89,14 @@ func (a *Args) Evaluate() {
 	a.BuildFile = Path(*buildFile).Resolve(a.BaseDir)
 	a.HomeDir = Path(*homeDir)
 	a.LogLevel = LogLevel(*logLevel)
-	a.ResourcesUrl = *resourcesUrl
+	a.ResourcesURL = *resourcesURL
 	a.Targets = strings.Split(*targets, ":")
 	a.ClearWorkspace = *doClean
 
 	logger = &defaultLogger{a.LogLevel}
 
 	logger.Debug(Fields{"Name": goUp, "Version": version, "GOARCH": runtime.GOARCH, "GOOS": runtime.GOOS})
-	logger.Debug(Fields{"BaseDir": a.BaseDir, "BuildFile": a.BuildFile, "HomeDir": a.HomeDir, "LogLevel": a.LogLevel, "ResourcesUrl": a.ResourcesUrl, "Targets": a.Targets})
+	logger.Debug(Fields{"BaseDir": a.BaseDir, "BuildFile": a.BuildFile, "HomeDir": a.HomeDir, "LogLevel": a.LogLevel, "ResourcesURL": a.ResourcesURL, "Targets": a.Targets})
 
 	if *doReset {
 		err := os.RemoveAll(a.HomeDir.String())

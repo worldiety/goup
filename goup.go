@@ -1,3 +1,17 @@
+// Copyright 2019 Torben Schinke
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
@@ -38,8 +52,8 @@ type GoUp struct {
 	artifactCache *ArtifactCache
 }
 
-// NewGoupBuilder creates a new GoUp builder
-func NewGoup(args *Args) (*GoUp, error) {
+// NewGoUp creates a new GoUp builder
+func NewGoUp(args *Args) (*GoUp, error) {
 	gp := &GoUp{}
 	gp.args = args
 	gp.config = &GoUpConfiguration{}
@@ -93,9 +107,9 @@ func (g *GoUp) loadResources() (*Resources, error) {
 	file := g.args.HomeDir.Child("resources.xml")
 	stat, err := os.Stat(file.String())
 	if err != nil || time.Now().Sub(stat.ModTime()).Hours() > 24 {
-		logger.Debug(Fields{"action": "downloading", "url": g.args.ResourcesUrl})
+		logger.Debug(Fields{"action": "downloading", "url": g.args.ResourcesURL})
 		_ = os.Remove(file.String())
-		res, err := http.Get(g.args.ResourcesUrl)
+		res, err := http.Get(g.args.ResourcesURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get resource list: %v", err)
 		}
@@ -128,7 +142,7 @@ func (g *GoUp) prepareAndroidSDK() error {
 		return nil
 	}
 	g.chdir(sdkHome.Child("bin"))
-	_, err := g.Run2("./sdkmanager", []byte("y\n"), "platforms;android-28", "build-tools;28.0.3")
+	_, err := g.run2("./sdkmanager", []byte("y\n"), "platforms;android-28", "build-tools;28.0.3")
 	if err != nil {
 		return err
 	}
@@ -209,7 +223,7 @@ func (g *GoUp) prepareGomobileToolchain() error {
 		_ = os.RemoveAll(tmpTargetFolder.String())
 		must(os.MkdirAll(tmpTargetFolder.String(), os.ModePerm))
 
-		err := downloadAndUnpack(res.Url, tmpTargetFolder)
+		err := downloadAndUnpack(res.URL, tmpTargetFolder)
 		if err != nil {
 			return fmt.Errorf("failed to provide resource: %s: %v", res.String(), err)
 		}
@@ -277,9 +291,9 @@ func (g *GoUp) prepareGomobileToolchain() error {
 		return err
 	}
 
-	_, _ = g.Run("which", "go")
-	_, _ = g.Run("type", "-p", "go")
-	_, _ = g.Run("go", "version")
+	_, _ = g.run("which", "go")
+	_, _ = g.run("type", "-p", "go")
+	_, _ = g.run("go", "version")
 
 	g.setEnv("ANDROID_NDK_HOME", g.args.HomeDir.Child("toolchains").Child("ndk-" + ndkVersion).String())
 	g.setEnv("NDK_PATH", g.env["ANDROID_NDK_HOME"])
@@ -288,7 +302,7 @@ func (g *GoUp) prepareGomobileToolchain() error {
 
 	g.setEnv("JAVA_HOME", javaHome.String())
 
-	_, _ = g.Run("java", "-version")
+	_, _ = g.run("java", "-version")
 	return nil
 }
 
@@ -338,15 +352,15 @@ func (g *GoUp) chdir(path Path) {
 
 // chmodX invokes chmod +x
 func (g *GoUp) chmodX(path Path) error {
-	_, err := g.Run("chmod", "+x", path.String())
+	_, err := g.run("chmod", "+x", path.String())
 	return err
 }
 
-func (g *GoUp) Run(name string, args ...string) ([]string, error) {
-	return g.Run2(name, nil, args...)
+func (g *GoUp) run(name string, args ...string) ([]string, error) {
+	return g.run2(name, nil, args...)
 }
 
-func (g *GoUp) Run2(name string, pipeTo []byte, args ...string) ([]string, error) {
+func (g *GoUp) run2(name string, pipeTo []byte, args ...string) ([]string, error) {
 	// we need to assemble the path before execution
 	// because exec.Command uses LookPath before the environment has been set for execution
 	err := os.Setenv("PATH", g.env["PATH"])
@@ -400,12 +414,12 @@ func (g *GoUp) prepareGomobile() error {
 	g.setEnv("GO111MODULE", "off")
 
 	logger.Debug(Fields{"action": "installing gomobile"})
-	_, err := g.Run("go", "get", "-u", "golang.org/x/mobile/cmd/gomobile")
+	_, err := g.run("go", "get", "-u", "golang.org/x/mobile/cmd/gomobile")
 	if err != nil {
 		return fmt.Errorf("failed to install gomobile: %v", err)
 	}
 
-	_, err = g.Run("bin/gomobile", "version")
+	_, err = g.run("bin/gomobile", "version")
 	if err != nil {
 		return fmt.Errorf("failed to invoke gomobile: %v", err)
 	}
@@ -413,7 +427,7 @@ func (g *GoUp) prepareGomobile() error {
 	// gomobile picks up ndk not anymore from -ndk but from ANDROID_NDK_HOME
 	// also init actually does nothing anymore with prebuild toolchains, see also
 	// https://github.com/golang/mobile/commit/ca80213619811c2fbed3ff8345accbd4ba924d45
-	_, err = g.Run("bin/gomobile", "init")
+	_, err = g.run("bin/gomobile", "init")
 	if err != nil {
 		return fmt.Errorf("failed to init gomobile: %v", err)
 	}
@@ -434,7 +448,7 @@ func (g *GoUp) copyModulesToWorkspace() error {
 		//non-existing paths are treated as remote sources, they are downloaded directly
 		if !resolvedPath.Exists() {
 			// not a local mode, try to go get
-			_, err := g.Run("go", "get", string(modPath))
+			_, err := g.run("go", "get", string(modPath))
 			if err != nil {
 				return err
 			}
@@ -465,7 +479,7 @@ func (g *GoUp) copyModulesToWorkspace() error {
 
 		// vendor module dependencies for each module
 		g.chdir(targetDir)
-		_, err = g.Run("go", "mod", "vendor")
+		_, err = g.run("go", "mod", "vendor")
 		if err != nil {
 			return fmt.Errorf("failed to vendor module dependencies: %v", err)
 		}
@@ -562,7 +576,7 @@ func (g *GoUp) compileGomobile() error {
 		args = append(args, "-target=android")
 
 		args = append(args, g.config.Build.Gomobile.Export...)
-		_, err := g.Run("bin/gomobile", args...)
+		_, err := g.run("bin/gomobile", args...)
 		if err != nil {
 			return err
 		}
@@ -584,7 +598,7 @@ func (g *GoUp) compileGomobile() error {
 		args = append(args, "-target=ios")
 
 		args = append(args, g.config.Build.Gomobile.Export...)
-		_, err := g.Run("bin/gomobile", args...)
+		_, err := g.run("bin/gomobile", args...)
 		if err != nil {
 			return err
 		}

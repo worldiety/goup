@@ -1,3 +1,17 @@
+// Copyright 2019 Torben Schinke
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
@@ -8,6 +22,7 @@ import (
 	"strings"
 )
 
+// A Version represents a semver version
 type Version struct {
 	Major int64
 	Minor int64
@@ -104,7 +119,7 @@ func ParseModulesTxT(fname string) ([]VendoredModule, error) {
 			fmt.Printf("%s: invalid path-version at line %d: %s", fname, i, lines[i])
 			continue
 		}
-		modImportUrl := pathVersionTokens[0]
+		modImportURL := pathVersionTokens[0]
 		versionTokens := strings.Split(pathVersionTokens[1], "-")
 		if len(versionTokens) < 1 {
 			fmt.Printf("%s: invalid version string at line %d: %s", fname, i, lines[i])
@@ -118,7 +133,7 @@ func ParseModulesTxT(fname string) ([]VendoredModule, error) {
 		}
 		modName := lines[i+1]
 		path := Path(filepath.Dir(fname)).Add(Path(modName))
-		res = append(res, VendoredModule{Version: version, ModuleName: modName, ModuleImport: modImportUrl, Local: path})
+		res = append(res, VendoredModule{Version: version, ModuleName: modName, ModuleImport: modImportURL, Local: path})
 	}
 	return res, nil
 }

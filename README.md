@@ -1,4 +1,4 @@
-# GoUp
+# GoUp [![Travis-CI](https://travis-ci.com/worldiety/goup.svg?branch=master)](https://travis-ci.com/worldiety/goup) [![Go Report Card](https://goreportcard.com/badge/github.com/worldiety/goup)](https://goreportcard.com/report/github.com/worldiety/goup) [![GoDoc](https://godoc.org/github.com/worldiety/goup?status.svg)](http://godoc.org/github.com/worldiety/goup)  
 GoUp (pronounced go-up) is an install and make tool which helps to build go modules with 
 gomobile for android and ios. It contains an automatic versioned toolchain provisioning,
 emulated module (vgo) support for gomobile and an build artifact cache.  
@@ -116,6 +116,33 @@ build:
 
 
 ```
+
+GoUp has a few optional commandline arguments, and also evaluates the environment variable GOUP_HOME.
+
+```bash
+goup -help
+  -buildFile string
+        Use a build file to load. (default "./goup.yaml")
+  -clean
+        Removes the project workspace, but keeps toolchains.
+  -dir string
+        Use a custom directory to resolve relative paths from goup.yml. 
+  -help
+        Shows this help
+  -home string
+        Use this as the home directory, where GoUp holds toolchains, projects and workspaces. 
+  -loglevel int
+        The LogLevel determines what is printed into the console. 0=Debug, 1=Info, 2=Warn, 3=Error
+  -reset
+        Performs a reset, delete the home directory and exits
+  -resources string
+        XML which describes downloadable toolchains (default "https://raw.githubusercontent.com/worldiety/goup/master/resources.xml")
+  -targets string
+        The targets to build, e.g. gomobile/android or gomobile/ios. Can be concated by : (default "all")
+  -version
+        Shows the version
+```
+
 You always need an *export* list and every exported module should be declared (at least transitively)
 from your *module* projects. All referred dependencies are upgraded and copied into
 an artificial go path in `~/.goup/<project>/go`, so that gomobile is happy. You can also

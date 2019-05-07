@@ -1,3 +1,17 @@
+// Copyright 2019 Torben Schinke
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
@@ -117,15 +131,15 @@ func CopyFile(src, dst string) error {
 	return os.Chmod(dst, srcinfo.Mode())
 }
 
+// ListFiles ignores hidden (.*) files but otherwise returns a flat list of absolute filepaths in stable order
 func ListFiles(root string) ([]string, error) {
 	files := make([]string, 0)
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if strings.HasPrefix(info.Name(), ".") {
 			if info.IsDir() {
 				return filepath.SkipDir
-			} else {
-				return nil
 			}
+			return nil
 
 		}
 
@@ -146,7 +160,7 @@ func Sha256(str string) string {
 	return hex.EncodeToString(t[:])
 }
 
-// Downloads a large file without memory buffering
+// DownloadFile gets a large file without memory buffering
 func DownloadFile(url string, dstFile string) error {
 	logger.Debug(Fields{"action": "downloading", "url": url, "dst": dstFile})
 
@@ -231,4 +245,3 @@ func (r *progressReader) Read(p []byte) (n int, err error) {
 	}
 	return n, err
 }
-
