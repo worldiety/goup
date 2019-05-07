@@ -182,9 +182,9 @@ func (g *GoUp) prepareGomobileToolchain() error {
 	if err != nil {
 		return fmt.Errorf("cannot prepare android build: %v", err)
 	}
-	if g.hasAndroidBuild() {
+//	if g.hasAndroidBuild() { //TODO seems to be required to also build ios?
 		resources = append(resources, res)
-	}
+//	}
 
 	// android sdk
 	sdkVersion := g.config.Build.Gomobile.Toolchain.Sdk
@@ -208,9 +208,9 @@ func (g *GoUp) prepareGomobileToolchain() error {
 	if err != nil {
 		return fmt.Errorf("cannot prepare jdk: %v", err)
 	}
-	if g.hasAndroidBuild() {
+//	if g.hasAndroidBuild() { //TODO seems to be required to also build ios?
 		resources = append(resources, res)
-	}
+//	}
 
 	for _, res := range resources {
 		targetFolder := g.args.HomeDir.Child("toolchains").Child(res.Name + "-" + res.Version)
@@ -518,18 +518,29 @@ func (g *GoUp) copyModulesToWorkspace() error {
 		}
 	}
 
-	// we collected all dependencies, now copy it into the workspace/gopath
-	for _, dep := range dependencies {
+	sortedDependencies := asSortedSlice(dependencies)
+
+	// a cleaning run, to purge only once the dependency-roots
+	for _, dep := range sortedDependencies {
 		targetDir := g.goPath().Child("src").Add(Path(dep.ModuleName))
 		err := os.RemoveAll(targetDir.Parent().String())
 		if err != nil {
 			return fmt.Errorf("failed to remove module target directory: %v", err)
 		}
-		err = os.MkdirAll(targetDir.Parent().String(), os.ModePerm)
+	}
+
+	// we collected all dependencies, now copy it into the workspace/gopath
+	for _, dep := range sortedDependencies {
+		targetDir := g.goPath().Child("src").Add(Path(dep.ModuleName))
+		err := os.MkdirAll(targetDir.Parent().String(), os.ModePerm)
 		if err != nil {
 			return fmt.Errorf("failed to create module target directory: %v", err)
 		}
 		logger.Debug(Fields{"action": "move", "from": dep.Local, "to": targetDir})
+		if !dep.Local.Exists() {
+			logger.Debug(Fields{"action": "move", "msg": "already absent, has been moved?", "from": dep.Local})
+			continue
+		}
 		err = os.Rename(dep.Local.String(), targetDir.String())
 		if err != nil {
 			return fmt.Errorf("failed to move: %s->%s: %v", dep.Local, targetDir, err)
