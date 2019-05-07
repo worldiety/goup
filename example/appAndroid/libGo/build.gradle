@@ -1,4 +1,4 @@
-def proc = 'sh goupw'.execute(null,new File(".."))
+def proc = './goupw'.execute(null,new File(".."))
 proc.waitForProcessOutput(System.out, System.err)
 if (proc.exitValue() != 0) {
     throw new RuntimeException("GoUp failed to compile, inspect output")

@@ -360,6 +360,17 @@ func (g *GoUp) run(name string, args ...string) ([]string, error) {
 	return g.run2(name, nil, args...)
 }
 
+func (g *GoUp) isProtectedEnvKey(key string) bool {
+	tmp := strings.ToLower(key)
+	protected := []string{"ssh", "rsa", "passwd", "password", "token"}
+	for _, p := range protected {
+		if strings.Contains(tmp, p) {
+			return true
+		}
+	}
+	return false
+}
+
 func (g *GoUp) run2(name string, pipeTo []byte, args ...string) ([]string, error) {
 	// we need to assemble the path before execution
 	// because exec.Command uses LookPath before the environment has been set for execution
@@ -372,7 +383,11 @@ func (g *GoUp) run2(name string, pipeTo []byte, args ...string) ([]string, error
 	fields := Fields{}
 	for k, v := range g.env {
 		cmd.Env = append(cmd.Env, k+"="+v)
-		fields[k] = v
+		if g.isProtectedEnvKey(k) {
+			fields[k] = "<HIDDEN>"
+		} else {
+			fields[k] = v
+		}
 	}
 	logger.Debug(fields)
 
