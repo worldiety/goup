@@ -21,10 +21,10 @@ build:
     # The ios section defines how our iOS library is build. This only works on MacOS with XCode installed
     ios:
       # The gomobile -prefix flag
-      prefix: MyLib
+      prefix: Myproject
 
       # The gomobile -o flag, this will be a folder
-      out: ./appIOS/MyLib.framework
+      out: ./appIOS/iosApp/Myproject.framework
 
       # The gomobile -bundleid flag sets the bundle ID to use with the app.
       bundleid:
@@ -61,11 +61,12 @@ build:
     export:
       # contains handsome wrappers to allow passing unsupported types (interfaces, maps, slices)
       # through gomobile. In our case pkgb wants to export those types.
-      - github.com/worldiety/std
       # our actual local packages
       - mycompany/myproject
       - mycompany/myproject/pkga
       - mycompany/myproject/pkgb
+      - github.com/worldiety/std
+
 
 
 

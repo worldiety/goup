@@ -13,6 +13,8 @@ import com.mycompany.myproject.myproject.Myproject;
 import com.mycompany.myproject.pkga.HelloCallback;
 import com.mycompany.myproject.pkga.Pkga;
 import com.mycompany.myproject.pkgb.Pkgb;
+import com.mycompany.myproject.std.StrSlice;
+import com.mycompany.myproject.std.StrStrMap;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -34,35 +36,47 @@ public class MainActivity extends AppCompatActivity {
                         return "GoUp";
                     }
                 });
-                System.out.println("Hello Mr. "+fromGo);
+                System.out.println("Hello Mr. " + fromGo);
                 try {
                     System.out.println(Pkgb.getMap2().get(Pkgb.getMap2().keys().get(0)));
-                }catch (Exception e){
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
             }
         });
-    }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
+        StrStrMap map = Pkgb.getMap2();
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
+        for (int i = 0; i < map.keys().len(); i++) {
+            try {
+                String key =  map.keys().get(i);
+                String value = map.get(key);
+                System.out.println(i + " - " + key +": " + value);
+            } catch (Exception e) {
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+            }
+        }
+        }
+
+        @Override
+        public boolean onCreateOptionsMenu (Menu menu){
+            // Inflate the menu; this adds items to the action bar if it is present.
+            getMenuInflater().inflate(R.menu.menu_main, menu);
             return true;
         }
 
-        return super.onOptionsItemSelected(item);
+        @Override
+        public boolean onOptionsItemSelected (MenuItem item){
+            // Handle action bar item clicks here. The action bar will
+            // automatically handle clicks on the Home/Up button, so long
+            // as you specify a parent activity in AndroidManifest.xml.
+            int id = item.getItemId();
+
+            //noinspection SimplifiableIfStatement
+            if (id == R.id.action_settings) {
+                return true;
+            }
+
+            return super.onOptionsItemSelected(item);
+        }
     }
-}
