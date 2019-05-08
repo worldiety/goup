@@ -79,10 +79,14 @@ func (g *GoUp) calculateOutHash() string {
 	hasher := sha1.New()
 	if g.hasAndroidBuild() {
 		outFile := g.config.Build.Gomobile.Android.Out.Resolve(g.args.BaseDir)
+		// we need to hash the file, to avoid rebuilding failures when switching android build on and the dir is missing
+		hasher.Write([]byte(outFile.String()))
 		hasher.Write(sloppyBytes(ioutil.ReadFile(outFile.String())))
 	}
 	if g.hasIosBuild() {
 		outFolder := g.config.Build.Gomobile.Ios.Out.Resolve(g.args.BaseDir)
+		// we need to hash the folder, to avoid rebuilding failures when switching ios build on and the dir is missing
+		hasher.Write([]byte(outFolder.String()))
 		files, err := ListFiles(outFolder.String())
 		if err != nil {
 			panic(err)
