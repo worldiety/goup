@@ -13,16 +13,19 @@ in different versions, even for distinct projects, to provide you a stable build
 What is still missing is extensive testing, configuration of more NDK, SDK, JDK and Go versions 
 which are known to be compatible with each other, windows support and versioning of gomobile.
 Also the example project layout is created to support a crossplatform project
-layout, but still only contains an android project.
+layout, but still only contains an android and ios project.
 
 Our perspective is to evaluate the practicality and to develop and support this tool in the 
 case of success.
 
 ## Example
 
-We've create an Android [example](https://github.com/worldiety/goup/tree/master/example) 
+We've create an Android and iOS [example](https://github.com/worldiety/goup/tree/master/example) 
 for your pleasure. It contains the android module *libGo* which invokes the GoUp wrapper
 script (goupw) which in turn downloads the actual GoUp version for your current platform.
+Please note, that the *goupw* script is only a crude bash script, were you need to define
+the platforms to build (`TARGETS`) and which GoUp version to use (`VERSION`).
+
 The gradle script in *libGo* builds the go library intentionally in every configuration phase,
 which ensures that you have always the valid generated Java API at your fingertips. 
 Performance wise the impact is reduced, due to the GoUp artifact caching, which avoids 
@@ -35,6 +38,11 @@ have to switch to the *Build Output* window and toggle the view in Android Studi
 
 In general you should not check in the generated artifacts, because the generated aar
 file may not be deterministic (bitwise).
+
+The process in iOS is very comparable and integrates the GoUp compilation phase simply as
+a *script phase* in the *build phases* section (just after *Target Dependencies*). Note, that you also
+need to disable the bitcode flag in *Build Settings*. The generated framework becomes fairly large, so
+a check in may also be inadequate.
 
 ## how to build
 
@@ -153,6 +161,7 @@ refer to external versioned go dependencies.
 Toolchains are installed in `~/.goup/toolchains`, one for each type and version. Also
 GoUp uses interprocess filelocks for modifying toolchains and projects, to allow
 at least concurrent (but sequentialized) builds without corruptions.
+
 
 ## hint
 Important things like maps, slices, derived basic and value types won't work with gomobile. 
