@@ -57,13 +57,13 @@
 		E54A84D52282E85E005D5D07 /* iosApp */ = {
 			isa = PBXGroup;
 			children = (
-				E54A84EB2282EBBA005D5D07 /* Myproject.framework */,
 				E54A84D62282E85E005D5D07 /* AppDelegate.swift */,
-				E54A84D82282E85E005D5D07 /* ViewController.swift */,
-				E54A84DA2282E85E005D5D07 /* Main.storyboard */,
 				E54A84DD2282E860005D5D07 /* Assets.xcassets */,
-				E54A84DF2282E860005D5D07 /* LaunchScreen.storyboard */,
 				E54A84E22282E860005D5D07 /* Info.plist */,
+				E54A84DF2282E860005D5D07 /* LaunchScreen.storyboard */,
+				E54A84DA2282E85E005D5D07 /* Main.storyboard */,
+				E54A84EB2282EBBA005D5D07 /* Myproject.framework */,
+				E54A84D82282E85E005D5D07 /* ViewController.swift */,
 			);
 			path = iosApp;
 			sourceTree = "<group>";
@@ -76,6 +76,7 @@
 			buildConfigurationList = E54A84E52282E860005D5D07 /* Build configuration list for PBXNativeTarget "iosApp" */;
 			buildPhases = (
 				E54A84E82282E892005D5D07 /* goup */,
+				E513A6FB2283F0E1001B20B3 /* SwiftLint */,
 				E54A84CF2282E85E005D5D07 /* Sources */,
 				E54A84D02282E85E005D5D07 /* Frameworks */,
 				E54A84D12282E85E005D5D07 /* Resources */,
@@ -136,6 +137,24 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		E513A6FB2283F0E1001B20B3 /* SwiftLint */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = SwiftLint;
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if which swiftlint >/dev/null; then\nswiftlint autocorrect\nswiftlint\nelse\necho \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\n";
+		};
 		E54A84E82282E892005D5D07 /* goup */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;

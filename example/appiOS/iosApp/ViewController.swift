@@ -6,44 +6,46 @@
 //  Copyright © 2019 Worldiety. All rights reserved.
 //
 
-import UIKit
 import Myproject
+import UIKit
 
-class Callback : NSObject {
-}
+/// Helper class to wrap a closure as MyprojectPkgaHelloCallbackProtocol
+class Callback: NSObject, MyprojectPkgaHelloCallbackProtocol {
+    private let callback: () -> String
+    init(_ callback: @escaping () -> String) {
+        self.callback = callback
+        super.init()
+    }
 
-extension Callback : MyprojectPkgaHelloCallbackProtocol {
     func yourName() -> String {
-        return "test"
+        return callback()
     }
 }
-
 
 class ViewController: UIViewController {
-
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        print(MyprojectMyprojectAnExportedProjectLevelFunc())
-        
-        print(MyprojectPkgaNiceCallback(Callback()))
-        
-        
-        var map = MyprojectPkgbGetMap2()
-       // print(map!.get(map!.keys()!.get(1, error: nil)))
-        let keys = map!.keys()!
-        for i in 0..<keys.len() {
-            let key = keys.get(i, error: nil)
-            let key2 = keys.get(i, error: nil)
 
-            let string = map!.get(key)
-            let string2 = map!.get(key2)
-            print("\(i) - \(key) - \(key2): \(string) - \(string2)")
-            sleep(1)
+        /// Call a exported go function
+        let goString = MyprojectMyprojectAnExportedProjectLevelFunc()
+        print(goString)
+
+        guard let map2 = MyprojectPkgbGetMap2(), let keys = map2.keys() else {
+            fatalError("Something's Not Quite Right...")
         }
-        
-        
+
+        for index in 0..<keys.len() {
+            let name = keys.get(index, error: nil)
+            let detail = map2.get(name)
+            print("\(index) - \(name): \(detail)")
+        }
+
+        let lastName = keys.len() > 0 ? keys.get(keys.len() - 1, error: nil) : ""
+
+        /// Call a exported go function with an callback paramer
+        let goCallback = MyprojectPkgaNiceCallback(Callback {
+            lastName
+        })
+        print(goCallback)
     }
-
 }
-
