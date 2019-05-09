@@ -135,6 +135,10 @@ func CopyFile(src, dst string) error {
 func ListFiles(root string) ([]string, error) {
 	files := make([]string, 0)
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			logger.Error(Fields{"msg": "failed to list", "root": root, "path": path, "err": err.Error()})
+			return nil
+		}
 		if strings.HasPrefix(info.Name(), ".") {
 			if info.IsDir() {
 				return filepath.SkipDir
