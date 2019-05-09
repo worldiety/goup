@@ -17,52 +17,52 @@ else
     osarch="linux-amd64"
 fi
 
-
 default="\e[39m"
 lightRed="\e[91m"
 lightGreen="\e[92m"
 
-
-while [[ $# -gt 0 ]]
-do
-key="$1"
-case $key in
-    c|clean|-c|-clean|--c|--clean)
-    CLEAN=true
-    shift
-    ;;
-    i|info|-i|-info|--i|--info)
-    printf "OS: $lightGreen$osarch$default\n"
-    printf "Wrapper version: $lightGreen$VERSION$default\n"
-    printf "Targeting: $lightGreen$TARGETS$default\n"
-    shift
-    ;;
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+    c | clean | -c | -clean | --c | --clean)
+        shift
+        CLEAN=true
+        EXIT=true
+        ;;
+    i | info | -i | -info | --i | --info)
+        printf "OS: $lightGreen$osarch$default\n"
+        printf "Wrapper version: $lightGreen$VERSION$default\n"
+        printf "Targeting: $lightGreen$TARGETS$default\n"
+        shift
+        EXIT=true
+        ;;
     *) # unknown option
-    printf "$lightRed$key$default not supported.\n"
-    exit 1
-    ;;
-esac
+        printf "$lightRed$key$default not supported.\n"
+        exit 1
+        ;;
+    esac
 done
 
-
 GOUPDIR=".goup"
-if [ "$CLEAN" = true ] ; then
+if [ "$CLEAN" = true ]; then
     printf "Removing $lightRed$(pwd)/$GOUPDIR$default.\n"
     rm -rf $GOUPDIR
-    exit $@
+    if [ "$?" -gt "0" ]; then
+        exit $?
+    fi
 fi
 
+if [ "$EXIT" = true ]; then
+    exit 0
+fi
 
 set -e
 
 execName="$GOUPDIR$VERSION"
 exec="$GOUPDIR/$execName"
 
-
-
-
 if [[ -f "$exec" ]]; then
-   echo ""
+    echo ""
 else
     printf "Creating $lightGreen$(pwd)/$GOUPDIR$default.\n"
     mkdir -p $GOUPDIR
@@ -79,4 +79,3 @@ buildDir=$(pwd)
 "$exec" -version
 
 "$exec" -dir "$buildDir" -loglevel 0 -targets "$TARGETS"
-
