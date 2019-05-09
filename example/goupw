@@ -21,56 +21,42 @@ default="\e[39m"
 lightRed="\e[91m"
 lightGreen="\e[92m"
 
-while [[ $# -gt 0 ]]; do
-    key="$1"
-    case $key in
-    c | clean | -c | -clean | --c | --clean)
-        shift
-        CLEAN=true
-        EXIT=true
-        ;;
-    i | info | -i | -info | --i | --info)
-        printf "OS: $lightGreen$osarch$default\n"
-        printf "Wrapper version: $lightGreen$VERSION$default\n"
-        printf "Targeting: $lightGreen$TARGETS$default\n"
-        shift
-        EXIT=true
-        ;;
-    *) # unknown option
-        printf "$lightRed$key$default not supported.\n"
-        exit 1
-        ;;
-    esac
-done
+printf "OS: $lightGreen$osarch$default\n"
+printf "Wrapper version: $lightGreen$VERSION$default\n"
+printf "Targeting: $lightGreen$TARGETS$default\n"
 
 GOUPDIR=".goup"
-if [ "$CLEAN" = true ]; then
-    printf "Removing $lightRed$(pwd)/$GOUPDIR$default.\n"
-    rm -rf $GOUPDIR
-    if [ "$?" -gt "0" ]; then
-        exit $?
-    fi
-fi
-
-if [ "$EXIT" = true ]; then
-    exit 0
-fi
-
-set -e
 
 execName="$GOUPDIR$VERSION"
 exec="$GOUPDIR/$execName"
 
+UPDATE_WRAPPER=true
+
 if [[ -f "$exec" ]]; then
-    echo ""
-else
+    cd $GOUPDIR
+    shasum -c $execName.sha -s
+    if [ "$?" = "0" ]; then
+        printf "Wrapper status:$lightGreen ok$default\n"
+        UPDATE_WRAPPER=false
+    else
+        printf "Wrapper status:$lightRed Not ok$default\n"
+        rm "$execName.sha"
+        rm "$execName"
+    fi
+    cd ..
+fi
+
+set -e
+
+if [ "$UPDATE_WRAPPER" = true ]; then
     printf "Creating $lightGreen$(pwd)/$GOUPDIR$default.\n"
     mkdir -p $GOUPDIR
     cd $GOUPDIR
-
     printf "Fetching wrapper version $lightGreen$VERSION$default.\n"
     curl "https://cdn.worldiety.org/github.com/worldiety/goup/$VERSION/$osarch/goup" --output $execName
     chmod +x $execName
+    #curl "https://cdn.worldiety.org/github.com/worldiety/goup/$VERSION/$osarch/goup.sha" --output $execName.sha
+    shasum -a 1 $execName > $execName.sha
     cd ..
 fi
 
