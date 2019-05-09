@@ -11,23 +11,64 @@ TARGETS="all"
 
 ################
 
-set -e
-
-execName="goup$VERSION"
-exec=".goup/$execName"
-
-
 if [[ "$OSTYPE" == "darwin"* ]]; then
     osarch="darwin-amd64"
 else
     osarch="linux-amd64"
 fi
 
+
+default="\e[39m"
+lightRed="\e[91m"
+lightGreen="\e[92m"
+
+
+while [[ $# -gt 0 ]]
+do
+key="$1"
+case $key in
+    c|clean|-c|-clean|--c|--clean)
+    CLEAN=true
+    shift
+    ;;
+    i|info|-i|-info|--i|--info)
+    printf "OS: $lightGreen$osarch$default\n"
+    printf "Wrapper version: $lightGreen$VERSION$default\n"
+    printf "Targeting: $lightGreen$TARGETS$default\n"
+    shift
+    ;;
+    *) # unknown option
+    printf "$lightRed$key$default not supported.\n"
+    exit 1
+    ;;
+esac
+done
+
+
+GOUPDIR=".goup"
+if [ "$CLEAN" = true ] ; then
+    printf "Removing $lightRed$(pwd)/$GOUPDIR$default.\n"
+    rm -rf $GOUPDIR
+    exit $@
+fi
+
+
+set -e
+
+execName="$GOUPDIR$VERSION"
+exec="$GOUPDIR/$execName"
+
+
+
+
 if [[ -f "$exec" ]]; then
    echo ""
 else
-    mkdir -p .goup
-    cd .goup
+    printf "Creating $lightGreen$(pwd)/$GOUPDIR$default.\n"
+    mkdir -p $GOUPDIR
+    cd $GOUPDIR
+
+    printf "Fetching wrapper version $lightGreen$VERSION$default.\n"
     curl "https://cdn.worldiety.org/github.com/worldiety/goup/$VERSION/$osarch/goup" --output $execName
     chmod +x $execName
     cd ..
