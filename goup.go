@@ -195,9 +195,9 @@ func (g *GoUp) prepareGomobileToolchain() error {
 	if err != nil {
 		return fmt.Errorf("cannot prepare android sdk: %v", err)
 	}
-	if g.hasAndroidBuild() {
+	//if g.hasAndroidBuild() { //TODO seems to be required to also build ios?
 		resources = append(resources, res)
-	}
+	//}
 
 	// java jdk
 	jdkVersion := g.config.Build.Gomobile.Toolchain.Jdk
