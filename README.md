@@ -56,6 +56,18 @@ The build yaml file may look like this:
 # You should not invoke parallel builds for the same project
 name: MySuperProject
 
+# set custom environment variables, which are always applied into the executing environment, just
+# like they have been defined before invoking GoUp
+variables:
+  TEST: "HELLO WORLD"
+  TEST2: "HELLO WORLD"
+
+# before_script is executing the following commands before the actual build starts. You can use it, to e.g. work around
+# authentication problems with go get and git
+before_script:
+  - git config --global url."https://user:password@gitlab.mycompany.com/".insteadOf "https://gitlab.mycompany.com/"
+
+
 # The build section defines what and how goup should work
 build:
   # We want a gomobile build, e.g. for ios or android

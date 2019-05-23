@@ -88,6 +88,12 @@ func NewGoUp(args *Args) (*GoUp, error) {
 	logger.Debug(Fields{"resources": gp.resources})
 
 	gp.env = make(map[string]string)
+	// insert all custom defined env variables
+	for k, v := range gp.config.Variables {
+		gp.setEnv(k, v)
+	}
+
+	// insert on top of that all env variables from us
 	for _, e := range os.Environ() {
 		pair := strings.Split(e, "=")
 		gp.setEnv(pair[0], pair[1])
@@ -182,9 +188,9 @@ func (g *GoUp) prepareGomobileToolchain() error {
 	if err != nil {
 		return fmt.Errorf("cannot prepare android build: %v", err)
 	}
-//	if g.hasAndroidBuild() { //TODO seems to be required to also build ios?
-		resources = append(resources, res)
-//	}
+	//	if g.hasAndroidBuild() { //TODO seems to be required to also build ios?
+	resources = append(resources, res)
+	//	}
 
 	// android sdk
 	sdkVersion := g.config.Build.Gomobile.Toolchain.Sdk
@@ -196,7 +202,7 @@ func (g *GoUp) prepareGomobileToolchain() error {
 		return fmt.Errorf("cannot prepare android sdk: %v", err)
 	}
 	//if g.hasAndroidBuild() { //TODO seems to be required to also build ios?
-		resources = append(resources, res)
+	resources = append(resources, res)
 	//}
 
 	// java jdk
@@ -208,9 +214,9 @@ func (g *GoUp) prepareGomobileToolchain() error {
 	if err != nil {
 		return fmt.Errorf("cannot prepare jdk: %v", err)
 	}
-//	if g.hasAndroidBuild() { //TODO seems to be required to also build ios?
-		resources = append(resources, res)
-//	}
+	//	if g.hasAndroidBuild() { //TODO seems to be required to also build ios?
+	resources = append(resources, res)
+	//	}
 
 	for _, res := range resources {
 		targetFolder := g.args.HomeDir.Child("toolchains").Child(res.Name + "-" + res.Version)
@@ -669,6 +675,17 @@ func (g *GoUp) updateBuildCache() {
 	}
 }
 
+// beforeScript executes the described commands before the build
+func (g *GoUp) beforeScript() {
+	for _, cmd := range g.config.Before_script {
+		// actually it is not correct to always expect sh to be available
+		name := "sh"
+		args := []string{"-c", cmd}
+		_, err := g.run(name, args...)
+		must(err)
+	}
+}
+
 // Build performs the actual build process
 func (g *GoUp) Build() error {
 	started := time.Now()
@@ -678,6 +695,8 @@ func (g *GoUp) Build() error {
 	if !g.isBuildRequired() {
 		return nil
 	}
+
+	g.beforeScript()
 
 	// the toolchains can only be modified by one process at once
 	fileLock := flock.New(g.args.HomeDir.Child("toolchain.lock").String())

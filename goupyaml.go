@@ -35,6 +35,14 @@ type GoUpConfiguration struct {
 	// You should not invoke parallel builds for the same project
 	Name string
 
+	// Variables set custom environment variables, which are always applied into the executing environment, just
+	// like they have been defined before invoking GoUp
+	Variables map[string]string
+
+	// Before_script is executing the following commands before the actual build starts. You can use it, to e.g. work around
+	// authentication problems with go get and git
+	Before_script []string
+
 	// The build section defines what and how goup should work
 	Build *Build
 }
