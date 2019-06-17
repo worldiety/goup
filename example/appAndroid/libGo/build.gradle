@@ -1,4 +1,5 @@
-def proc = './goupw'.execute(null,new File(".."))
+def proc = './goupw'.execute(null, project.file("../.."))
+
 proc.waitForProcessOutput(System.out, System.err)
 if (proc.exitValue() != 0) {
     throw new RuntimeException("GoUp failed to compile, inspect output")
@@ -9,7 +10,6 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 28
-
 
 
     defaultConfig {
