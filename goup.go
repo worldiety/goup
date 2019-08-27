@@ -445,6 +445,15 @@ func (g *GoUp) prepareGomobile() error {
 		return fmt.Errorf("failed to invoke gomobile: %v", err)
 	}
 
+	// compatible hotfix, because go mobile broke again
+	// gomobile init performs a "go install golang.org/x/mobile/cmd/gobind"
+	// which fails with "src/golang.org/x/mobile/internal/importers/ast.go:37:2:
+	//                          cannot find package "golang.org/x/tools/go/packages"
+	_, err = g.run("go", "get", "-u", "golang.org/x/mobile/cmd/gobind")
+	if err != nil {
+		return fmt.Errorf("failed to get gobind: %v", err)
+	}
+
 	// gomobile picks up ndk not anymore from -ndk but from ANDROID_NDK_HOME
 	// also init actually does nothing anymore with prebuild toolchains, see also
 	// https://github.com/golang/mobile/commit/ca80213619811c2fbed3ff8345accbd4ba924d45

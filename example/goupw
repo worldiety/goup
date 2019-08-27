@@ -4,12 +4,14 @@
 # It downloads the required GoUp version and executes it.
 
 # Set the version as required.
-VERSION="v0.0.10"
+VERSION="v0.0.14"
 
 # Set the required targets (e.g. all|gomobile/android|gomobile/ios|gomobile/android:gomobile/ios)
 TARGETS="all"
 
 ################
+
+LOG_LEVEL=$1
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     osarch="darwin-amd64"
@@ -64,4 +66,4 @@ buildDir=$(pwd)
 
 "$exec" -version
 
-"$exec" -dir "$buildDir" -loglevel 0 -targets "$TARGETS"
+"$exec" -dir "$buildDir" -loglevel "$LOG_LEVEL" -targets "$TARGETS"

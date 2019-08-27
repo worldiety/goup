@@ -1,4 +1,6 @@
-def proc = './goupw'.execute(null, project.file("../.."))
+// convert gradle log level to go 0=Debug, 1=Info, 2=Warn, 3=Error with default fallback to 1=Info
+def goLogLevel = [(LogLevel.DEBUG):0, (LogLevel.INFO):1, (LogLevel.WARN):2, (LogLevel.ERROR):3].get(gradle.startParameter.logLevel, 1)
+def proc = "./goupw $goLogLevel".execute(null, project.file("."))
 
 proc.waitForProcessOutput(System.out, System.err)
 if (proc.exitValue() != 0) {
