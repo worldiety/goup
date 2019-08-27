@@ -15,5 +15,5 @@
     <r name="jdk"   version="8u212b03" os="linux"    arch="amd64" url="https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u212-b03/OpenJDK8U-jdk_x64_linux_hotspot_8u212b03.tar.gz"/>
     <r name="jdk"   version="8u212b03" os="windows"  arch="amd64" url="https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u212-b03/OpenJDK8U-jdk_x64_windows_hotspot_8u212b03.zip"/>
 
-
+    <r name="gomobile" version="wdy-v0.0.1" url="https://cdn.worldiety.org/golang.org/gomobile-wdy-v0.0.1.zip"/>
 </resources>
