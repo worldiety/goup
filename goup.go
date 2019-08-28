@@ -179,6 +179,17 @@ func (g *GoUp) prepareGomobileToolchain() error {
 	}
 	resources = append(resources, res)
 
+	// gomobile
+	goMobileVersion := g.config.Build.Gomobile.Toolchain.Gomobile
+	if IsEmpty(goMobileVersion) {
+		goMobileVersion = "wdy-v0.0.1"
+	}
+	res, err = g.resources.Get("gomobile", goMobileVersion)
+	if err != nil {
+		return fmt.Errorf("cannot prepare android build (gomobile version): %v", err)
+	}
+	resources = append(resources, res)
+
 	// android ndk
 	ndkVersion := g.config.Build.Gomobile.Toolchain.Ndk
 	if IsEmpty(ndkVersion) {
@@ -424,6 +435,62 @@ func (g *GoUp) run2(name string, pipeTo []byte, args ...string) ([]string, error
 	}
 
 	return lines, err
+}
+
+// prepareGomobileFrozen downloads a fixed snapshot of gomobile to avoid the regular build breaking changes
+// which happen multiple times per year.
+func (g *GoUp) prepareGomobileFrozen() error {
+	gomobileVersionFile := g.goPath().Child("gomobile.version")
+	installedGomobilePathVersion := ReadVersion(gomobileVersionFile.String())
+	if installedGomobilePathVersion == g.config.Build.Gomobile.Toolchain.Gomobile {
+		return nil
+	}
+
+	g.chdir(g.goPath())
+
+	// nuke the mod caches, see also bug https://github.com/golang/go/issues/27455
+	_, err := g.run("go", "clean", "-modcache")
+	if err != nil {
+		return fmt.Errorf("failed to clean go cache: %v", err)
+	}
+
+	// the workflow expects that the gomobile version has already been downloaded in toolchains
+	err = os.RemoveAll(g.goPath().String())
+	if err != nil {
+		return fmt.Errorf("failed to remove go-path, due to mismatched gomobile version: %v", err)
+	}
+
+	_ = os.MkdirAll(g.goPath().String(), os.ModePerm)
+
+	// just copy it into the actual workspace
+	srcPath := g.toolchainPath().Child("gomobile-" + g.config.Build.Gomobile.Toolchain.Gomobile)
+	dstPath := g.goPath().Child("src")
+	err = CopyDir(srcPath.String(), dstPath.String())
+	if err != nil {
+		return fmt.Errorf("failed to rename gomobile frozen version: %v", err)
+	}
+
+	// compile the required tools
+	_, err = g.run("go", "install", "golang.org/x/mobile/cmd/gobind")
+	if err != nil {
+		return fmt.Errorf("failed to install gobind: %v", err)
+	}
+
+	_, err = g.run("go", "install", "golang.org/x/mobile/cmd/gomobile")
+	if err != nil {
+		return fmt.Errorf("failed to install gomobile: %v", err)
+	}
+
+	// gomobile picks up ndk not anymore from -ndk but from ANDROID_NDK_HOME
+	// also init actually does nothing anymore with prebuild toolchains, see also
+	// https://github.com/golang/mobile/commit/ca80213619811c2fbed3ff8345accbd4ba924d45
+	_, err = g.run("bin/gomobile", "init")
+	if err != nil {
+		return fmt.Errorf("failed to init gomobile: %v", err)
+	}
+
+	WriteVersion(gomobileVersionFile.String(), g.config.Build.Gomobile.Toolchain.Gomobile)
+	return nil
 }
 
 // prepareGomobile installs gomobile into the gopath, if required
@@ -720,7 +787,7 @@ func (g *GoUp) Build() error {
 			return fmt.Errorf("failed to prepare gomobile build: %v", err)
 		}
 
-		err = g.prepareGomobile()
+		err = g.prepareGomobileFrozen()
 		if err != nil {
 			return err
 		}

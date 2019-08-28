@@ -81,6 +81,8 @@ type BuildGomobileToolchain struct {
 	Sdk string
 	// which java jdk version? e.g. 8u212b03
 	Jdk string
+	// which gomobile version? e.g. wdy-v0.0.1
+	Gomobile string
 }
 
 // The Ios section defines how our iOS library is build. This only works on MacOS with XCode installed

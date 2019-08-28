@@ -83,6 +83,8 @@ build:
       sdk: 4333796
       # which java version?
       jdk: 8u212b03
+      # which gomobile version?
+      gomobile: wdy-v0.0.1
 
     # The ios section defines how our iOS library is build. This only works on MacOS with XCode installed
     ios:

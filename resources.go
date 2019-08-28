@@ -58,6 +58,13 @@ func (r *Resources) Get(name string, version string) (Resource, error) {
 			return e, nil
 		}
 	}
+	// try to find something unspecific
+	for _, e := range *r {
+		if e.Name == name && e.Version == version && e.Arch == "" && e.OS == "" {
+			return e, nil
+		}
+	}
+
 	return Resource{}, fmt.Errorf("no such resource: %s@%s for os=%s and arch=%s", name, version, runtime.GOOS, runtime.GOARCH)
 }
 
