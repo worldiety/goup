@@ -13,6 +13,11 @@ TARGETS="all"
 
 LOG_LEVEL=$1
 
+if [ -z "$LOG_LEVEL" ]
+then
+      LOG_LEVEL=0
+fi
+
 if [[ "$OSTYPE" == "darwin"* ]]; then
     osarch="darwin-amd64"
 else
