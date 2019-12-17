@@ -1,4 +1,4 @@
-# GoUp [![Travis-CI](https://travis-ci.com/worldiety/gomobilebuilder.svg?branch=master)](https://travis-ci.com/worldiety/gomobilebuilder) [![Go Report Card](https://goreportcard.com/badge/github.com/worldiety/goup)](https://goreportcard.com/report/github.com/worldiety/goup) [![GoDoc](https://godoc.org/github.com/worldiety/goup?status.svg)](http://godoc.org/github.com/worldiety/goup)  
+# GoUp (gomobile modules) [![Go Report Card](https://goreportcard.com/badge/github.com/worldiety/goup)](https://goreportcard.com/report/github.com/worldiety/goup) [![GoDoc](https://godoc.org/github.com/worldiety/goup?status.svg)](http://godoc.org/github.com/worldiety/goup)  
 GoUp (pronounced go-up) is an install and make tool which helps to build go modules with 
 gomobile for android and ios. It contains an automatic versioned toolchain provisioning,
 emulated module (vgo) support for gomobile and an build artifact cache.  
