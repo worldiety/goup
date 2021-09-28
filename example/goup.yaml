@@ -14,6 +14,7 @@ before_script:
   - git config --global url."https://user:password@gitlab.mycompany.com/".insteadOf "https://gitlab.mycompany.com/"
 
 
+
 # The build section defines what and how goup should work
 build:
   # We want a gomobile build, e.g. for ios or android
