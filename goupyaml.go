@@ -17,8 +17,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
+
+	"gopkg.in/yaml.v2"
 )
 
 // A ModuleSpecifier is either a relative path (e.g. ./my/module) or absolute (e.g. /home/usr/my/mod)
