@@ -16,7 +16,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/gofrs/flock"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -25,6 +24,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/gofrs/flock"
 )
 
 // GoUp contains the actual state of the GoUp program
@@ -312,9 +313,9 @@ func (g *GoUp) prepareGomobileToolchain() error {
 	_, _ = g.run("type", "-p", "go")
 	_, _ = g.run("go", "version")
 
-	g.setEnv("ANDROID_NDK_HOME", g.args.HomeDir.Child("toolchains").Child("ndk-" + ndkVersion).String())
+	g.setEnv("ANDROID_NDK_HOME", g.args.HomeDir.Child("toolchains").Child("ndk-"+ndkVersion).String())
 	g.setEnv("NDK_PATH", g.env["ANDROID_NDK_HOME"])
-	g.setEnv("ANDROID_HOME", g.args.HomeDir.Child("toolchains").Child("sdk-" + sdkVersion).String())
+	g.setEnv("ANDROID_HOME", g.args.HomeDir.Child("toolchains").Child("sdk-"+sdkVersion).String())
 	g.setEnv("ANDROID_SDK_ROOT", g.env["ANDROID_HOME"])
 
 	g.setEnv("JAVA_HOME", javaHome.String())
@@ -471,12 +472,12 @@ func (g *GoUp) prepareGomobileFrozen() error {
 	}
 
 	// compile the required tools
-	_, err = g.run("go", "install", "golang.org/x/mobile/cmd/gobind")
+	_, err = g.run("go", "install", "golang.org/x/mobile/cmd/gobind@latest")
 	if err != nil {
 		return fmt.Errorf("failed to install gobind: %v", err)
 	}
 
-	_, err = g.run("go", "install", "golang.org/x/mobile/cmd/gomobile")
+	_, err = g.run("go", "install", "golang.org/x/mobile/cmd/gomobile@latest")
 	if err != nil {
 		return fmt.Errorf("failed to install gomobile: %v", err)
 	}
