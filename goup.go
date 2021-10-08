@@ -485,11 +485,13 @@ func (g *GoUp) prepareGomobileFrozen() error {
 	// gomobile picks up ndk not anymore from -ndk but from ANDROID_NDK_HOME
 	// also init actually does nothing anymore with prebuild toolchains, see also
 	// https://github.com/golang/mobile/commit/ca80213619811c2fbed3ff8345accbd4ba924d45
+	// With golang 1.18 we have to support the GO111Module which could lead to a major refactoring.
+	g.setEnv("GO111MODULE", "off")
 	_, err = g.run("bin/gomobile", "init")
 	if err != nil {
 		return fmt.Errorf("failed to init gomobile: %v", err)
 	}
-
+	g.setEnv("GO111MODULE", "on")
 	WriteVersion(gomobileVersionFile.String(), g.config.Build.Gomobile.Toolchain.Gomobile)
 	return nil
 }
