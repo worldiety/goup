@@ -39,7 +39,7 @@ build:
       prefix: Myproject
 
       # The gomobile -o flag, this will be a folder
-      out: ./appIOS/iosApp/Myproject.framework
+      out: ./appIOS/iosApp/Myproject.xcframework
 
       # The gomobile -bundleid flag sets the bundle ID to use with the app.
       bundleid:
