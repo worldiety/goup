@@ -14,6 +14,10 @@ mkdir -p builds/darwin-amd64
 env GOOS=darwin GOARCH=amd64 go build
 mv goup builds/darwin-amd64
 
+mkdir -p builds/darwin-arm64
+env GOOS=darwin GOARCH=arm64 go build
+mv goup builds/darwin-arm64
+
 mkdir -p builds/windows-amd64
 env GOOS=windows GOARCH=amd64 go build
 mv goup.exe builds/windows-amd64
