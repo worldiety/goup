@@ -396,6 +396,7 @@ func (g *GoUp) run2(name string, pipeTo []byte, args ...string) ([]string, error
 	if err != nil {
 		panic(err)
 	}
+
 	cmd := exec.Command(name, args...)
 
 	fields := Fields{}
@@ -486,12 +487,11 @@ func (g *GoUp) prepareGomobileFrozen() error {
 	// also init actually does nothing anymore with prebuild toolchains, see also
 	// https://github.com/golang/mobile/commit/ca80213619811c2fbed3ff8345accbd4ba924d45
 	// With golang 1.18 we have to support the GO111Module which could lead to a major refactoring.
-	g.setEnv("GO111MODULE", "off")
+	// > this just works with 1.17.8 so far
 	_, err = g.run("bin/gomobile", "init")
 	if err != nil {
 		return fmt.Errorf("failed to init gomobile: %v", err)
 	}
-	g.setEnv("GO111MODULE", "on")
 	WriteVersion(gomobileVersionFile.String(), g.config.Build.Gomobile.Toolchain.Gomobile)
 	return nil
 }
@@ -519,7 +519,7 @@ func (g *GoUp) prepareGomobile() error {
 	// gomobile init performs a "go install golang.org/x/mobile/cmd/gobind"
 	// which fails with "src/golang.org/x/mobile/internal/importers/ast.go:37:2:
 	//                          cannot find package "golang.org/x/tools/go/packages"
-	_, err = g.run("go", "get", "-u", "golang.org/x/mobile/cmd/gobind")
+	_, err = g.run("go", "get", "-u", "golang.org/x/mobile/cmd/gobind@latest")
 	if err != nil {
 		return fmt.Errorf("failed to get gobind: %v", err)
 	}

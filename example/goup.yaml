@@ -23,7 +23,7 @@ build:
     # the toolchain section is required to setup a stable gomobile building experience
     toolchain:
       # which go version?
-      go: 1.12.4
+      go: 1.17.8
       # which android ndk version?
       ndk: r19c
       # which android sdk version?
@@ -31,7 +31,7 @@ build:
       # which java version?
       jdk: 8u212b03
       # which gomobile version?
-      gomobile: wdy-v0.0.1
+      gomobile: wdy-v0.0.2
 
     # The ios section defines how our iOS library is build. This only works on MacOS with XCode installed
     ios:

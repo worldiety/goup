@@ -28,4 +28,14 @@
     <r name="jdk"   version="8u212b03" os="windows"  arch="amd64" url="https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u212-b03/OpenJDK8U-jdk_x64_windows_hotspot_8u212b03.zip"/>
 
     <r name="gomobile" version="wdy-v0.0.1" url="https://cdn.worldiety.org/golang.org/gomobile-wdy-v0.0.1.zip"/>
+
+
+
+    <r name="go"    version="1.17.8"   os="darwin"   arch="arm64" url="https://go.dev/dl/go1.17.8.darwin-arm64.tar.gz"/>
+    <!-- this is just amd64 stuff, but works fine with rosetta so far -->
+    <r name="ndk"   version="r19c"     os="darwin"  arch="arm64" url="https://dl.google.com/android/repository/android-ndk-r19c-darwin-x86_64.zip"/>
+    <r name="sdk"   version="4333796"  os="darwin"  arch="arm64" url="https://dl.google.com/android/repository/sdk-tools-darwin-4333796.zip"/>
+    <r name="jdk"   version="8u212b03" os="darwin"   arch="arm64" url="https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u212-b03/OpenJDK8U-jdk_x64_mac_hotspot_8u212b03.tar.gz"/>
+    <r name="gomobile" version="wdy-v0.0.2" url="https://cdn.worldiety.org/golang.org/gomobile-wdy-v0.0.2.zip"/>
+
 </resources>
