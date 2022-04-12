@@ -19,7 +19,11 @@ then
 fi
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    osarch="darwin-$(uname -m)"
+    if [[ "$(uname -m)" == "x86_64"* ]]; then
+        osarch="darwin-amd64"
+    else
+        osarch="darwin-$(uname -m)"
+    fi
 else
     osarch="linux-amd64"
 fi
