@@ -40,5 +40,5 @@
     <r name="go"    version="1.17.8"   os="darwin"  arch="amd64" url="https://dl.google.com/go/go1.17.8.darwin-amd64.tar.gz"/>
     <r name="go"    version="1.17.8"   os="linux"   arch="amd64" url="https://dl.google.com/go/go1.17.8.linux-amd64.tar.gz"/>
     <r name="go"    version="1.17.8"   os="windows" arch="amd64" url="https://dl.google.com/go/go1.17.8.windows-amd64.zip"/>
-
+    <r name="go"    version="1.21.5"   os="darwin"  arch="arm64" url="https://go.dev/dl/go1.21.5.darwin-amd64.tar.gz"/>
 </resources>
