@@ -790,10 +790,10 @@ func (g *GoUp) Build() error {
 			return fmt.Errorf("failed to prepare gomobile build: %v", err)
 		}
 
-		err = g.prepareGomobileFrozen()
-		if err != nil {
-			return err
-		}
+		// err = g.prepareGomobileFrozen()
+		// if err != nil {
+		// 	return err
+		// }
 
 		err = g.prepareAndroidSDK()
 		if err != nil {
