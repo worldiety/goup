@@ -491,10 +491,10 @@ func (g *GoUp) prepareGomobileFrozen() error {
 	// https://github.com/golang/mobile/commit/ca80213619811c2fbed3ff8345accbd4ba924d45
 	// With golang 1.18 we have to support the GO111Module which could lead to a major refactoring.
 	// > this just works with 1.17.8 so far
-	_, err = g.run("bin/gomobile", "init")
-	if err != nil {
-		return fmt.Errorf("failed to init gomobile: %v", err)
-	}
+	// _, err = g.run("bin/gomobile", "init")
+	// if err != nil {
+	// 	return fmt.Errorf("failed to init gomobile: %v", err)
+	// }
 	WriteVersion(gomobileVersionFile.String(), g.config.Build.Gomobile.Toolchain.Gomobile)
 	return nil
 }
