@@ -443,11 +443,13 @@ func (g *GoUp) run2(name string, pipeTo []byte, args ...string) ([]string, error
 // which happen multiple times per year.
 func (g *GoUp) prepareGomobileFrozen() error {
 	gomobileVersionFile := g.goPath().Child("gomobile.version")
+	logger.Debug(Fields{"go mobile verson file": gomobileVersionFile})
 	installedGomobilePathVersion := ReadVersion(gomobileVersionFile.String())
 	if installedGomobilePathVersion == g.config.Build.Gomobile.Toolchain.Gomobile {
 		return nil
 	}
 
+	logger.Debug(Fields{"goPath": g.goPath()})
 	g.chdir(g.goPath())
 
 	// nuke the mod caches, see also bug https://github.com/golang/go/issues/27455
@@ -467,6 +469,7 @@ func (g *GoUp) prepareGomobileFrozen() error {
 	// just copy it into the actual workspace
 	srcPath := g.toolchainPath().Child("gomobile-" + g.config.Build.Gomobile.Toolchain.Gomobile)
 	dstPath := g.goPath().Child("src")
+	logger.Debug(Fields{"src path": srcPath, "destPath": dstPath})
 	err = CopyDir(srcPath.String(), dstPath.String())
 	if err != nil {
 		return fmt.Errorf("failed to rename gomobile frozen version: %v", err)
@@ -790,10 +793,10 @@ func (g *GoUp) Build() error {
 			return fmt.Errorf("failed to prepare gomobile build: %v", err)
 		}
 
-		// err = g.prepareGomobileFrozen()
-		// if err != nil {
-		// 	return err
-		// }
+		err = g.prepareGomobileFrozen()
+		if err != nil {
+			return err
+		}
 
 		err = g.prepareAndroidSDK()
 		if err != nil {
