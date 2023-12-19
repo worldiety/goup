@@ -14,7 +14,7 @@
 
 package main
 
-const version = "0.0.23"
+const version = "0.0.24"
 const goUp = "GoUp"
 const goup = "goup"
 const defaultResourcesURL = "https://raw.githubusercontent.com/worldiety/goup/master/resources.xml"
